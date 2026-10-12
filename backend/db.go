@@ -24,5 +24,24 @@ func openDB(path string) (*sql.DB, error) {
 		db.Close()
 		return nil, err
 	}
+	if _, err := db.Exec(schema); err != nil {
+		db.Close()
+		return nil, err
+	}
 	return db, nil
 }
+
+// ponytail: CREATE IF NOT EXISTS only; add a versioned migration list once a table needs ALTER.
+// NOCASE so "Acme" and "acme" count as the same project/tag.
+const schema = `
+CREATE TABLE IF NOT EXISTS projects (
+	id       INTEGER PRIMARY KEY,
+	name     TEXT    NOT NULL COLLATE NOCASE,
+	client   TEXT    NOT NULL DEFAULT '' COLLATE NOCASE,
+	billable INTEGER NOT NULL DEFAULT 1,
+	UNIQUE (name, client)
+);
+CREATE TABLE IF NOT EXISTS tags (
+	id   INTEGER PRIMARY KEY,
+	name TEXT NOT NULL UNIQUE COLLATE NOCASE
+);`

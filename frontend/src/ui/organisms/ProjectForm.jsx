@@ -6,12 +6,18 @@ import { BillableToggle, Field } from '../molecules';
 export function ProjectForm() {
   const { clients, addProject } = useCatalog();
   const [billable, setBillable] = useState(true);
-  const submit = e => {
+  const [error, setError] = useState('');
+  const submit = async e => {
     e.preventDefault();
-    const f = new FormData(e.target), name = f.get('name').trim();
+    const form = e.target, f = new FormData(form), name = f.get('name').trim();
     if (!name) return;
-    addProject({ name, client: f.get('client').trim() || 'No client', billable });
-    e.target.reset();
+    try {
+      await addProject({ name, client: f.get('client').trim() || 'No client', billable });
+      form.reset();
+      setError('');
+    } catch (err) {
+      setError(err.message === 'already exists' ? 'That project already exists for this client.' : err.message);
+    }
   };
   return (
     <form className="week-sec pform" onSubmit={submit}>
@@ -20,6 +26,7 @@ export function ProjectForm() {
       <Field label="Client"><input className="input" name="client" list="wp-clients" placeholder="No client" /></Field>
       <datalist id="wp-clients">{Object.keys(clients).map(c => <option key={c} value={c} />)}</datalist>
       <Field label="Billing"><BillableToggle value={billable} onChange={setBillable} /></Field>
+      {error && <p className="text-muted" role="alert">{error}</p>}
       <Button variant="secondary" type="submit">Add project</Button>
     </form>
   );

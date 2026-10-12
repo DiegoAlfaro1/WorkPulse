@@ -12,7 +12,10 @@ func newRouter(db *sql.DB) *gin.Engine {
 	r.SetTrustedProxies(nil) // ponytail: ignores X-Forwarded-For; trust nginx's IP here once ClientIP() matters
 
 	api := r.Group("/api")
-	// Feature routes go on api too, e.g. api.GET("/projects", listProjects).
+	api.GET("/projects", listProjects(db))
+	api.POST("/projects", createProject(db))
+	api.GET("/tags", listTags(db))
+	api.POST("/tags", createTag(db))
 
 	api.GET("/health", func(c *gin.Context) {
 		if err := db.PingContext(c.Request.Context()); err != nil {

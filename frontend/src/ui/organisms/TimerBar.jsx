@@ -4,7 +4,7 @@ import { Button, Icon, RecDot, Select } from '../atoms';
 import { BillableToggle, Field, ProjectSelect, TagPicker } from '../molecules';
 
 export function TimerBar({ timer, onChange, onStart, onStop, now }) {
-  const { projectById, tasks, tags } = useCatalog();
+  const { projectById, tasks, tags, addTag } = useCatalog();
   const running = !!timer.start;
   const canStart = !!projectById[timer.project];
   const toggleRun = () => (running ? onStop() : canStart && onStart());
@@ -22,7 +22,7 @@ export function TimerBar({ timer, onChange, onStart, onStop, now }) {
             <Select value={timer.task} onChange={e => onChange({ task: e.target.value })}>{tasks.map(t => <option key={t}>{t}</option>)}</Select>
           </Field>
           <Field label="Tags" className="pop-wrap">
-            <TagPicker options={tags} value={timer.tags} onChange={v => onChange({ tags: v })} />
+            <TagPicker options={tags} value={timer.tags} onChange={v => onChange({ tags: v })} onCreate={addTag} />
           </Field>
           <Field label="Billing">
             <BillableToggle value={timer.billable} onChange={v => onChange({ billable: v })} />

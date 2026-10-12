@@ -53,5 +53,12 @@ SQLite via `modernc.org/sqlite` (pure Go, no CGO), opened in WAL mode with forei
 In Docker the database lives in the `data` volume at `/data/workpulse.db`. The backend isn't published
 to the host; the browser reaches it only through nginx at `/api`, so no CORS is needed.
 
-Flat `package main`: `main.go` (config, server, graceful shutdown), `db.go` (SQLite), `router.go` (routes under `/api`).
+Flat `package main`: `main.go` (config, server, graceful shutdown), `db.go` (SQLite + schema), `router.go` (routes under `/api`), `catalog.go` (projects, tags).
 `GET /api/health` pings the DB and returns `{"status":"ok"}` (503 if the DB is unavailable).
+
+| Route | Body | Notes |
+|---|---|---|
+| `GET /api/projects` | | ordered by id |
+| `POST /api/projects` | `{"name","client","billable"}` | 201 with `id`; 409 if name+client exists (case-insensitive); 400 on empty name |
+| `GET /api/tags` | | ordered by name |
+| `POST /api/tags` | `{"name"}` | leading `#` stripped, no spaces; 409 if it exists (case-insensitive) |

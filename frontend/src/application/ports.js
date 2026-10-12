@@ -13,12 +13,21 @@
  * @property {Array<{id, name, client, billable, color}>} projects
  * @property {Record<string, Object>} projectById
  * @property {string[]} tasks
- * @property {string[]} tags
+ * @property {string[]} tags                         from CatalogApiPort
  * @property {Array<{id, name, role}>} members
  * @property {string} currentUserId
- * @property {(p: {name, client, billable}) => void} addProject  persists a user-created project
+ * @property {(p: {name, client, billable}) => Promise<void>} addProject  rejects with the API's error message
+ * @property {(name: string) => Promise<string>} addTag                 resolves to the stored tag name
  */
 
-/** @typedef {{ storage: StoragePort, catalog: CatalogPort }} Services */
+/**
+ * @typedef {Object} CatalogApiPort
+ * @property {() => Promise<Array<{id: string, name, client, billable}>>} listProjects
+ * @property {(p: {name, client, billable}) => Promise<{id: string, name, client, billable}>} createProject
+ * @property {() => Promise<string[]>} listTags
+ * @property {(name: string) => Promise<string>} createTag
+ */
+
+/** @typedef {{ storage: StoragePort, catalog: CatalogPort, api: CatalogApiPort }} Services */
 
 export {};
