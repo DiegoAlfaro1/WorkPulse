@@ -9,7 +9,8 @@ export const overlap = (e, a, b) => Math.max(0, Math.min(e.end, b) - Math.max(e.
 
 const pad = n => String(n).padStart(2, '0');
 export const fmtDur = ms => { const m = Math.round(ms / M); return Math.floor(m / 60) + ':' + pad(m % 60); };
-export const fmtClock = ms => { const s = Math.floor(ms / 1000); return pad(Math.floor(s / 3600)) + ':' + pad(Math.floor(s / 60) % 60) + ':' + pad(s % 60); };
+// Clamped: `now` ticks once a second, so right after Start, now - start can be slightly negative.
+export const fmtClock = ms => { const s = Math.max(0, Math.floor(ms / 1000)); return pad(Math.floor(s / 3600)) + ':' + pad(Math.floor(s / 60) % 60) + ':' + pad(s % 60); };
 export const fmtTime = t => { const d = new Date(t); return pad(d.getHours()) + ':' + pad(d.getMinutes()); };
 export const fmtDay = t => new Date(t).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
 export const dayLabel = (k, today) =>

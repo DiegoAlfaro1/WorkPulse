@@ -3,7 +3,8 @@ WORKDIR /src
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
-RUN go test ./... && CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /server . && mkdir /data
+# Cache mount keeps compiled packages (the SQLite driver is slow to build) across rebuilds, e.g. under compose watch.
+RUN --mount=type=cache,target=/root/.cache/go-build     go test ./... && CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /server . && mkdir /data
 
 FROM gcr.io/distroless/static-debian12:nonroot
 COPY --from=build /server /server

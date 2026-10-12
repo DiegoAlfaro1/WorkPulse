@@ -6,12 +6,21 @@ services:
     depends_on:
       - backend
     restart: unless-stopped
+    # `docker compose up --watch`: rebuilds and replaces the container on changes (.dockerignore'd paths skipped).
+    develop:
+      watch:
+        - action: rebuild
+          path: ./frontend
   backend:
     build: ./backend
     # Not published: reached only through the frontend's nginx at /api.
     volumes:
       - data:/data
     restart: unless-stopped
+    develop:
+      watch:
+        - action: rebuild
+          path: ./backend
 
 volumes:
   data:

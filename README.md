@@ -21,6 +21,7 @@ Docker (multi-stage: tests + build on Node, served by nginx), from the repo root
 
 ```
 docker compose up --build   # http://localhost:8080 (nginx serves the app and proxies /api to the backend)
+docker compose up --watch   # same, plus rebuilds a service when its folder changes (tests run on each rebuild)
 ```
 
 ### Structure (hexagonal + atomic design)
