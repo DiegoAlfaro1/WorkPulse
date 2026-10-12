@@ -2,30 +2,31 @@ import { useMemo } from 'react';
 import { entryFromTimer } from '../domain/entries.js';
 import { useCatalog, usePersistentState } from './services.jsx';
 
-const IDLE_TIMER = { desc: '', project: 'p1', task: 'Design', tags: [], billable: true, issue: null, start: null };
+const IDLE_TIMER = { desc: '', project: '', task: 'Design', tags: [], billable: true, start: null };
 
 export function useTimeTracker() {
-  const { seedEntries, currentUserId } = useCatalog();
-  const [userEntries, setUserEntries] = usePersistentState('wp_user_entries', []);
-  const [deleted, setDeleted] = usePersistentState('wp_deleted', []);
-  const [timer, setTimer] = usePersistentState('wp_timer', IDLE_TIMER);
+  const { projectById, currentUserId } = useCatalog();
+  const [entries, setEntries] = usePersistentState('wp_user_entries', []);
+  const [savedTimer, setTimer] = usePersistentState('wp_timer', IDLE_TIMER);
 
-  const all = useMemo(() => seedEntries.concat(userEntries).filter(e => !deleted.includes(e.id)), [seedEntries, userEntries, deleted]);
+  // Entries/timer pointing at a project that no longer exists (e.g. the old demo p1–p5) are hidden, not deleted.
+  const all = useMemo(() => entries.filter(e => projectById[e.project]), [entries, projectById]);
   const mine = useMemo(() => all.filter(e => e.member === currentUserId), [all, currentUserId]);
+  const timer = projectById[savedTimer.project] ? savedTimer : { ...savedTimer, project: '', start: null };
 
   const stopCurrent = t => {
-    if (t.start) setUserEntries(u => [...u, entryFromTimer(t, Date.now(), currentUserId)]);
+    if (t.start) setEntries(u => [...u, entryFromTimer(t, Date.now(), currentUserId)]);
   };
 
   return {
     all, mine, timer,
-    updateTimer: patch => setTimer(t => ({ ...t, ...patch })),
-    start: () => setTimer(t => ({ ...t, start: Date.now() })),
-    stop: () => { stopCurrent(timer); setTimer(t => ({ ...t, start: null, desc: '', tags: [], issue: null })); },
+    updateTimer: patch => setTimer({ ...timer, ...patch }),
+    start: () => setTimer({ ...timer, start: Date.now() }),
+    stop: () => { stopCurrent(timer); setTimer({ ...timer, start: null, desc: '', tags: [] }); },
     resume: e => {
       stopCurrent(timer);
-      setTimer({ desc: e.desc, project: e.project, task: e.task, tags: e.tags, billable: e.billable, issue: e.issue || null, start: Date.now() });
+      setTimer({ desc: e.desc, project: e.project, task: e.task, tags: e.tags, billable: e.billable, start: Date.now() });
     },
-    remove: e => e.id.startsWith('u') ? setUserEntries(u => u.filter(x => x.id !== e.id)) : setDeleted(d => [...d, e.id]),
+    remove: e => setEntries(u => u.filter(x => x.id !== e.id)),
   };
 }

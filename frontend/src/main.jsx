@@ -3,12 +3,12 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { ServicesProvider } from './application/services.jsx';
 import { localStorageAdapter } from './infrastructure/localStorageAdapter.js';
-import { createSeedCatalog } from './infrastructure/seedCatalog.js';
+import { localCatalog } from './infrastructure/localCatalog.js';
 import { App } from './ui/App.jsx';
 import './ui/styles/modernist.css';
 import './ui/styles/app.css';
 
-const services = { storage: localStorageAdapter, catalog: createSeedCatalog(Date.now()) };
+const services = { storage: localStorageAdapter, catalog: localCatalog };
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

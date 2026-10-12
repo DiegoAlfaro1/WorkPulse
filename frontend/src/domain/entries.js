@@ -15,7 +15,7 @@ export function groupByDay(entries) {
 
 export const entryFromTimer = (t, end, member) => ({
   id: 'u' + end, member, start: t.start, end, project: t.project, task: t.task, desc: t.desc,
-  tags: t.tags, billable: t.billable, issue: t.issue || null, sync: t.issue ? 'pending' : null,
+  tags: t.tags, billable: t.billable,
 });
 
 /** Adds the running timer as a pseudo-entry so live totals include it. */

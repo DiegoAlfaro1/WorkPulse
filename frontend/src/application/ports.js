@@ -9,14 +9,14 @@
 
 /**
  * @typedef {Object} CatalogPort
- * @property {Record<string, string>} clients        clientId -> name
+ * @property {Record<string, string>} clients        client name -> name (derived from projects)
  * @property {Array<{id, name, client, billable, color}>} projects
  * @property {Record<string, Object>} projectById
  * @property {string[]} tasks
  * @property {string[]} tags
  * @property {Array<{id, name, role}>} members
  * @property {string} currentUserId
- * @property {Array<Object>} seedEntries           read-only historical entries
+ * @property {(p: {name, client, billable}) => void} addProject  persists a user-created project
  */
 
 /** @typedef {{ storage: StoragePort, catalog: CatalogPort }} Services */

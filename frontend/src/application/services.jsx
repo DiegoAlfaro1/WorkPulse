@@ -1,10 +1,24 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 
 const ServicesContext = createContext(null);
+const COLORS = ['var(--color-accent)', 'var(--color-neutral-900)', 'var(--color-accent-300)', 'var(--color-neutral-500)', 'var(--color-accent-800)'];
 
-/** @param {{ services: import('./ports.js').Services, children: any }} props */
-export const ServicesProvider = ({ services, children }) =>
-  <ServicesContext.Provider value={services}>{children}</ServicesContext.Provider>;
+/** Adds the user-created projects (persisted via storage) to the static catalog. Clients are derived from them. */
+export function ServicesProvider({ services, children }) {
+  const { storage, catalog } = services;
+  const [projects, setProjects] = useState(() => storage.load('wp_projects', []));
+  useEffect(() => { storage.save('wp_projects', projects); }, [storage, projects]);
+  const value = useMemo(() => ({
+    ...services,
+    catalog: {
+      ...catalog, projects,
+      projectById: Object.fromEntries(projects.map(p => [p.id, p])),
+      clients: Object.fromEntries(projects.map(p => [p.client, p.client])),
+      addProject: p => setProjects(ps => [...ps, { ...p, id: 'p' + Date.now(), color: COLORS[ps.length % COLORS.length] }]),
+    },
+  }), [services, storage, catalog, projects]);
+  return <ServicesContext.Provider value={value}>{children}</ServicesContext.Provider>;
+}
 
 export const useServices = () => useContext(ServicesContext);
 export const useCatalog = () => useServices().catalog;

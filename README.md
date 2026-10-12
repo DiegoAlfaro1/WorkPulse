@@ -4,6 +4,7 @@ Time tracking + insights. Monolith repo: each tier lives in its own top-level fo
 
 ```
 frontend/   React (Vite) web app
+backend/    Go (Gin) HTTP API
 ```
 
 ## Frontend
@@ -19,7 +20,7 @@ npm run build
 Docker (multi-stage: tests + build on Node, served by nginx), from the repo root:
 
 ```
-docker compose up --build   # http://localhost:8080
+docker compose up --build   # http://localhost:8080 (nginx serves the app and proxies /api to the backend)
 ```
 
 ### Structure (hexagonal + atomic design)
@@ -28,7 +29,7 @@ docker compose up --build   # http://localhost:8080
 frontend/src/
   domain/          pure business logic — no React, no browser APIs (time math, grouping, reports)
   application/     ports (ports.js), DI context + use-case hooks (useTimeTracker, useInsights)
-  infrastructure/  adapters implementing the ports (localStorage, seeded demo catalog)
+  infrastructure/  adapters implementing the ports (localStorage, static task/tag catalog)
   ui/              primary adapter
     atoms/ molecules/ organisms/ templates/ pages/
     styles/        modernist.css (design system) + app.css (WorkPulse theme/layout)
@@ -37,3 +38,20 @@ frontend/src/
 
 Dependencies point inward: `ui → application → domain`; `infrastructure` implements `application/ports.js`.
 To back the app with a real API, write a new adapter for `CatalogPort` / `StoragePort` and swap it in `main.jsx`.
+
+## Backend
+
+```
+cd backend
+go run .        # http://localhost:8080; `npm run dev` proxies /api here
+go test ./...
+```
+
+Config (env vars): `PORT` (default `8080`), `DB_PATH` (default `workpulse.db`), `GIN_MODE` (`release` in Docker).
+
+SQLite via `modernc.org/sqlite` (pure Go, no CGO), opened in WAL mode with foreign keys on.
+In Docker the database lives in the `data` volume at `/data/workpulse.db`. The backend isn't published
+to the host; the browser reaches it only through nginx at `/api`, so no CORS is needed.
+
+Flat `package main`: `main.go` (config, server, graceful shutdown), `db.go` (SQLite), `router.go` (routes under `/api`).
+`GET /api/health` pings the DB and returns `{"status":"ok"}` (503 if the DB is unavailable).

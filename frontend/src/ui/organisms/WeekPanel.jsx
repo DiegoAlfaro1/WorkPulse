@@ -6,7 +6,7 @@ import { ProjectName } from '../molecules';
 
 const WEEKDAY_INITIALS = 'MTWTFSS';
 
-export function WeekPanel({ entries, now }) {
+export function WeekPanel({ entries, now, children }) {
   const { projectById } = useCatalog();
   const { days, total, max, todayH, projects } = weekSummary(entries, now);
   const pmax = projects.length ? projects[0][1] : 1;
@@ -41,6 +41,7 @@ export function WeekPanel({ entries, now }) {
           ))}
         </div>
       </div>
+      {children}
     </aside>
   );
 }

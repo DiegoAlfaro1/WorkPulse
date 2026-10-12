@@ -6,3 +6,4 @@ export { InsightsFilters } from './InsightsFilters.jsx';
 export { TrendChart } from './TrendChart.jsx';
 export { Heatmap } from './Heatmap.jsx';
 export { TeamTable } from './TeamTable.jsx';
+export { ProjectForm } from './ProjectForm.jsx';

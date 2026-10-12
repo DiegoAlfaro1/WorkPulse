@@ -1,6 +1,6 @@
 import { withRunning } from '../../domain/entries.js';
 import { sod } from '../../domain/time.js';
-import { EntryList, TimerBar, WeekPanel } from '../organisms';
+import { EntryList, ProjectForm, TimerBar, WeekPanel } from '../organisms';
 import { PageShell } from '../templates/PageShell.jsx';
 
 export function TrackPage({ tracker, now }) {
@@ -11,7 +11,7 @@ export function TrackPage({ tracker, now }) {
       <TimerBar timer={timer} onChange={updateTimer} onStart={start} onStop={stop} now={now} />
       <div className="track-grid">
         <EntryList entries={mine} today={sod(now)} onResume={onResume} onDelete={remove} />
-        <WeekPanel entries={withRunning(mine, timer, now)} now={now} />
+        <WeekPanel entries={withRunning(mine, timer, now)} now={now}><ProjectForm /></WeekPanel>
       </div>
     </PageShell>
   );

@@ -6,7 +6,8 @@ import { BillableToggle, Field, ProjectSelect, TagPicker } from '../molecules';
 export function TimerBar({ timer, onChange, onStart, onStop, now }) {
   const { projectById, tasks, tags } = useCatalog();
   const running = !!timer.start;
-  const toggleRun = () => (running ? onStop() : onStart());
+  const canStart = !!projectById[timer.project];
+  const toggleRun = () => (running ? onStop() : canStart && onStart());
   return (
     <section className={'timer' + (running ? ' is-running' : '')}>
       <div className="timer-main">
@@ -32,7 +33,7 @@ export function TimerBar({ timer, onChange, onStart, onStop, now }) {
         <div className="clock-label">{running ? <><RecDot />Started {fmtTime(timer.start)}</> : 'Not running'}</div>
         <div className="clock">{fmtClock(running ? now - timer.start : 0)}</div>
       </div>
-      <Button variant="primary" className="timer-go" onClick={toggleRun}>
+      <Button variant="primary" className="timer-go" onClick={toggleRun} disabled={!running && !canStart} title={canStart ? undefined : 'Add or select a project first'}>
         {running ? 'Stop' : 'Start'}<Icon n={running ? 'stop' : 'play'} s={18} />
       </Button>
     </section>
