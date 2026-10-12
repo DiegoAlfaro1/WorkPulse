@@ -12,6 +12,7 @@ export const fmtDur = ms => { const s = Math.max(0, Math.floor(ms / 1000)); retu
 export const fmtH = h => fmtDur(h * H);
 // Clamped: `now` ticks once a second, so right after Start, now - start can be slightly negative.
 export const fmtClock = ms => { const s = Math.max(0, Math.floor(ms / 1000)); return pad(Math.floor(s / 3600)) + ':' + pad(Math.floor(s / 60) % 60) + ':' + pad(s % 60); };
+export const fmtDate = t => { const d = new Date(t); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }; // <input type="date">
 export const fmtTime = t => { const d = new Date(t); return pad(d.getHours()) + ':' + pad(d.getMinutes()); };
 export const fmtDay = t => new Date(t).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
 export const dayLabel = (k, today) =>

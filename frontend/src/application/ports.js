@@ -44,8 +44,9 @@
  * @property {() => Promise<string[]>} listTags
  * @property {(name: string) => Promise<string>} createTag
  * @property {() => Promise<Object[]>} listEntries                 newest first, same shape as entryFromTimer + id
- * @property {(e: Object) => Promise<Object>} createEntry             rejects with the API's error message
+ * @property {(e: Object) => Promise<Object>} createEntry             for e.member: themself, or (admin/manager) someone they can see
  * @property {(id: string) => Promise<void>} deleteEntry              rejects with the API's error message
+ * @property {(id: string, e: Object) => Promise<Object>} updateEntry  replaces the editable fields; member never changes
  * @property {() => Promise<User[]>} listUsers  / createUser / updateUser / setUserActive
  * @property {() => Promise<Array<{id, name}>>} listTeams  / createTeam / renameTeam / deleteTeam
  * @property {() => Promise<Array<{id, name, active}>>} listCompanies  / createCompany / setCompanyActive — super admin only

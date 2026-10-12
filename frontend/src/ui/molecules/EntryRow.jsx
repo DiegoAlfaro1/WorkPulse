@@ -2,7 +2,7 @@ import { fmtDur, fmtTime } from '../../domain/time.js';
 import { Button, Icon, Tag } from '../atoms';
 import { ProjectName } from './ProjectName.jsx';
 
-export function EntryRow({ entry: e, onResume, onDelete, deleting }) {
+export function EntryRow({ entry: e, onResume, onEdit, onDelete, deleting }) {
   return (
     <div className="erow">
       <div className="erow-main">
@@ -16,6 +16,7 @@ export function EntryRow({ entry: e, onResume, onDelete, deleting }) {
       <span className="erow-dur">{fmtDur(e.end - e.start)}</span>
       <div className="erow-act">
         <Button variant="icon" title="Resume this entry" aria-label="Resume this entry" onClick={() => onResume(e)}><Icon n="play" /></Button>
+        <Button variant="icon" title="Edit" aria-label="Edit" onClick={() => onEdit(e)}><Icon n="edit" /></Button>
         <Button variant="icon" title="Delete" aria-label="Delete" disabled={deleting} onClick={() => window.confirm("Delete this entry? This can't be undone.") && onDelete(e)}><Icon n="trash" /></Button>
       </div>
     </div>

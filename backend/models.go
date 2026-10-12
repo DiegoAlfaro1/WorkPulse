@@ -67,7 +67,7 @@ type Tag struct {
 }
 
 // Entry is a finished block of tracked time. Times are Unix milliseconds, matching the frontend's Date.now().
-// UserID is always the signed-in user.
+// UserID is the signed-in user, unless an admin or manager added it for someone they can see (CreatedByID).
 type Entry struct {
 	ID        uint    `json:"id"`
 	UserID    uint    `json:"member" gorm:"not null;index"`
@@ -82,6 +82,8 @@ type Entry struct {
 	End       int64   `json:"end" gorm:"column:end_ms;not null;check:end_ms > start_ms" binding:"required,gtfield=Start"`
 	// ImpersonatorID: the super admin who created it while signed in as the user; never from the body.
 	ImpersonatorID *uint `json:"-"`
+	// CreatedByID: the admin or manager who added it for the member; never from the body.
+	CreatedByID *uint `json:"-"`
 }
 
 // ImpersonationLog records every "sign in as" (audit trail; never shown in the app).

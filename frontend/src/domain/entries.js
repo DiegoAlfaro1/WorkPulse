@@ -19,6 +19,13 @@ export const entryFromTimer = (t, end, member) => ({
   tags: t.tags, billable: t.billable,
 });
 
+/** A block typed as a date and two HH:MM times (local); an end at or before the start means it ends the next day. */
+export function blockTimes(date, from, to) {
+  const s = new Date(`${date}T${from}`), e = new Date(`${date}T${to}`);
+  if (e <= s) e.setDate(e.getDate() + 1);
+  return { start: s.getTime(), end: e.getTime() };
+}
+
 /** Adds the running timer as a pseudo-entry so live totals (and insights filters) include it. */
 export const withRunning = (entries, timer, now, member) =>
   timer.start ? [...entries, { ...entryFromTimer(timer, now, member), id: 'running' }] : entries;

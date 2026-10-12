@@ -44,6 +44,17 @@ export function useTimeTracker() {
     start: () => setTimer({ ...timer, start: Date.now() }),
     stop: () => stopThen(t => ({ ...t, start: null, desc: '', tags: [] })),
     resume: e => stopThen({ desc: e.desc, project: e.project, task: e.task, tags: e.tags, billable: e.billable, start: Date.now() }),
+    // add/edit reject with the API's message (e.g. an overlap) so the form can show it.
+    add: async e => {
+      const saved = await api.createEntry(e);
+      setEntries(u => [saved, ...u]);
+      setError('');
+    },
+    edit: async (id, e) => {
+      const saved = await api.updateEntry(id, e);
+      setEntries(u => u.map(x => (x.id === id ? saved : x)));
+      setError('');
+    },
     // The UI disables an entry's delete button while it's in `deleting`; the guard covers any other caller.
     remove: async e => {
       if (deleting.has(e.id)) return;

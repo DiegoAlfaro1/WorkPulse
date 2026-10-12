@@ -24,6 +24,7 @@ const strId = x => ({ ...x, id: String(x.id) });
 // Entry tags travel as {name} objects (the backend's Tag model); the UI uses plain names.
 const toEntry = e => ({ ...e, id: String(e.id), member: String(e.member), project: String(e.project), tags: e.tags.map(t => t.name) });
 const toUser = u => ({ ...u, id: String(u.id), company: u.company == null ? null : String(u.company), teams: u.teams.map(strId) });
+const fromEntry = ({ id, ...e }) => ({ ...e, member: Number(e.member), project: Number(e.project), tags: e.tags.map(name => ({ name })) });
 const ids = list => list.map(Number);
 const startSession = ({ token: t }) => setToken(t);
 
@@ -56,8 +57,8 @@ export const apiAdapter = {
   createTag: name => req('/tags', { name }).then(t => t.name),
   listEntries: () => req('/entries').then(es => es.map(toEntry)),
   deleteEntry: id => req('/entries/' + id, undefined, 'DELETE'),
-  // member is not sent: the backend always records the signed-in user.
-  createEntry: ({ member, ...e }) => req('/entries', { ...e, project: Number(e.project), tags: e.tags.map(name => ({ name })) }).then(toEntry),
+  createEntry: e => req('/entries', fromEntry(e)).then(toEntry),
+  updateEntry: (id, e) => req('/entries/' + id, fromEntry(e), 'PATCH').then(toEntry),
 
   listUsers: () => req('/users').then(us => us.map(toUser)),
   createUser: u => req('/users', { ...u, teams: ids(u.teams) }).then(toUser),

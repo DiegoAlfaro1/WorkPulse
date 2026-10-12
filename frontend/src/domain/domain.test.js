@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { DAY, H, sod, sow, overlap, fmtDur, fmtClock } from './time.js';
-import { groupByDay, weekSummary, withRunning } from './entries.js';
+import { blockTimes, groupByDay, weekSummary, withRunning } from './entries.js';
 import { assignableRoles, assignableTeams, canDeactivate, seesTeam } from './roles.js';
 import { niceMax, matchesAttrs, buildReport } from './insights.js';
 
@@ -34,6 +34,12 @@ test('entries grouping and week summary', () => {
   assert.equal(w.todayH, 3);
   assert.equal(w.total, 4);
   assert.deepEqual(w.projects.map(([p]) => p), ['a', 'b']);
+});
+
+test('blockTimes', () => {
+  const d = new Date(2026, 9, 14).getTime();
+  assert.deepEqual(blockTimes('2026-10-14', '09:00', '10:30'), { start: d + 9 * H, end: d + 10.5 * H });
+  assert.deepEqual(blockTimes('2026-10-14', '22:00', '01:00'), { start: d + 22 * H, end: d + 25 * H });
 });
 
 test('niceMax', () => {

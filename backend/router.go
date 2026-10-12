@@ -70,6 +70,7 @@ func newRouter(db *gorm.DB) *gin.Engine {
 	company.POST("/tags", createTag(db))
 	company.GET("/entries", listEntries(db))
 	company.POST("/entries", createEntry(db))
+	company.PATCH("/entries/:id", updateEntry(db))
 	company.DELETE("/entries/:id", deleteEntry(db))
 	company.GET("/teams", listTeams(db))
 

@@ -459,14 +459,14 @@ func TestCatalog(t *testing.T) {
 func TestEntries(t *testing.T) {
 	a := newTestAPI(t)
 	soon, later := strconv.FormatInt(time.Now().Add(time.Hour).UnixMilli(), 10), strconv.FormatInt(time.Now().Add(2*time.Hour).UnixMilli(), 10)
-	const ok = `{"member":99,"project":1,"task":"Design","desc":" Mockups ","tags":[{"name":"Deep-Work"}],"billable":true,"start":1000,"end":5000}`
+	const ok = `{"member":4,"project":1,"task":"Design","desc":" Mockups ","tags":[{"name":"Deep-Work"}],"billable":true,"start":1000,"end":5000}`
 	a.run([]apiCase{
 		{"admin", "POST", "/api/projects", `{"name":"Website","client":"Acme"}`, 201, ``},
 		{"gina", "POST", "/api/projects", `{"name":"Globex site","client":"Globex"}`, 201, ``}, // id 2
 		{"admin", "POST", "/api/tags", `{"name":"deep-work"}`, 201, ``},
 		{"gina", "POST", "/api/tags", `{"name":"globex-only"}`, 201, ``},
 		{"dana", "GET", "/api/entries", "", 200, `[]`},
-		// member is ignored: entries always belong to the signed-in user (dana = 4).
+		{"dana", "POST", "/api/entries", strings.Replace(ok, `"member":4`, `"member":99`, 1), 400, `{"error":"unknown member"}`},
 		{"dana", "POST", "/api/entries", ok, 201, `{"id":1,"member":4,"project":1,"task":"Design","desc":"Mockups","tags":[{"id":1,"name":"deep-work"}],"billable":true,"start":1000,"end":5000}`},
 		{"eli", "POST", "/api/entries", `{"project":1,"task":"Admin","desc":"Email","start":6000,"end":7000}`, 201, ``},
 		{"dana", "POST", "/api/entries", strings.Replace(ok, `"end":5000`, `"end":1000`, 1), 400, `{"error":"end must be after start"}`},
@@ -498,4 +498,57 @@ func TestEntries(t *testing.T) {
 		{"admin", "DELETE", "/api/entries/2", "", 204, ``},
 		{"admin", "GET", "/api/entries", "", 200, `[]`},
 	})
+}
+
+func TestEditEntries(t *testing.T) {
+	a := newTestAPI(t)
+	const e = `{"project":1,"task":"Design","desc":"Mockups","tags":[{"name":"deep-work"}],"start":1000,"end":5000}`
+	at := func(start, end string) string {
+		return strings.Replace(e, `"start":1000,"end":5000`, `"start":`+start+`,"end":`+end, 1)
+	}
+	forMember := func(id, start, end string) string {
+		return strings.Replace(at(start, end), `{`, `{"member":`+id+`,`, 1)
+	}
+	a.run([]apiCase{
+		{"admin", "POST", "/api/projects", `{"name":"Website","client":"Acme"}`, 201, ``},
+		{"admin", "POST", "/api/tags", `{"name":"deep-work"}`, 201, ``},
+		{"dana", "POST", "/api/entries", e, 201, ``}, // 1
+		// Overlaps are rejected for the same member only; touching ends are fine.
+		{"dana", "POST", "/api/entries", at("4000", "6000"), 409, `{"error":"overlaps another entry"}`},
+		{"dana", "POST", "/api/entries", at("2000", "3000"), 409, ``},
+		{"dana", "POST", "/api/entries", at("5000", "6000"), 201, ``}, // 2
+		{"eli", "POST", "/api/entries", e, 201, ``},                   // 3
+
+		// Time for others: anyone the caller can see (dana is in mgr's team, eli isn't).
+		{"mgr", "POST", "/api/entries", forMember("4", "7000", "8000"), 201, `{"id":4,"member":4,"project":1,"task":"Design","desc":"Mockups","tags":[{"id":1,"name":"deep-work"}],"billable":false,"start":7000,"end":8000}`},
+		{"mgr", "POST", "/api/entries", forMember("4", "1000", "2000"), 409, ``},
+		{"mgr", "POST", "/api/entries", forMember("5", "7000", "8000"), 400, `{"error":"unknown member"}`},
+		{"dana", "POST", "/api/entries", forMember("5", "7000", "8000"), 400, `{"error":"unknown member"}`},
+		{"gina", "POST", "/api/entries", forMember("4", "7000", "8000"), 400, `{"error":"unknown member"}`},
+		{"admin", "POST", "/api/entries", forMember("5", "7000", "8000"), 201, ``}, // 5
+
+		// Edit: the delete rule (own entries; admins anyone's in the company) and the create validation.
+		{"dana", "PATCH", "/api/entries/1", `{"member":5,"project":1,"task":"Admin","desc":" Review ","tags":[],"billable":true,"start":500,"end":4000}`, 200,
+			`{"id":1,"member":4,"project":1,"task":"Admin","desc":"Review","tags":[],"billable":true,"start":500,"end":4000}`},
+		{"dana", "PATCH", "/api/entries/1", at("500", "5500"), 409, `{"error":"overlaps another entry"}`},
+		{"dana", "PATCH", "/api/entries/1", at("5000", "500"), 400, `{"error":"end must be after start"}`},
+		{"dana", "PATCH", "/api/entries/1", strings.Replace(e, `deep-work`, `nope`, 1), 400, `{"error":"unknown tag: nope"}`},
+		{"dana", "PATCH", "/api/entries/3", e, 404, ``},
+		{"mgr", "PATCH", "/api/entries/1", e, 404, ``},
+		{"gina", "PATCH", "/api/entries/1", e, 404, ``},
+		{"dana", "PATCH", "/api/entries/abc", e, 400, ``},
+		{"dana", "PATCH", "/api/entries/9", e, 404, ``},
+		{"admin", "PATCH", "/api/entries/3", at("1000", "2000"), 200, ``},
+		{"dana", "GET", "/api/entries", "", 200, `[{"id":4,"member":4,"project":1,"task":"Design","desc":"Mockups","tags":[{"id":1,"name":"deep-work"}],"billable":false,"start":7000,"end":8000},` +
+			`{"id":2,"member":4,"project":1,"task":"Design","desc":"Mockups","tags":[{"id":1,"name":"deep-work"}],"billable":false,"start":5000,"end":6000},` +
+			`{"id":1,"member":4,"project":1,"task":"Admin","desc":"Review","tags":[],"billable":true,"start":500,"end":4000}]`},
+	})
+
+	var es []Entry
+	a.db.Order("id").Find(&es)
+	for i, want := range []uint{0, 0, 0, 3, 2} {
+		if got := es[i].CreatedByID; (got == nil) != (want == 0) || (got != nil && *got != want) {
+			t.Errorf("entry %d: created by %v, want %d", es[i].ID, got, want)
+		}
+	}
 }
