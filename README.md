@@ -16,6 +16,12 @@ npm test        # domain unit tests (node --test)
 npm run build
 ```
 
+Docker (multi-stage: tests + build on Node, served by nginx), from the repo root:
+
+```
+docker compose up --build   # http://localhost:8080
+```
+
 ### Structure (hexagonal + atomic design)
 
 ```
