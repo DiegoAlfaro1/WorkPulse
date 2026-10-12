@@ -1,13 +1,13 @@
 package main
 
 import (
-	"database/sql"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
-func newRouter(db *sql.DB) *gin.Engine {
+func newRouter(db *gorm.DB) *gin.Engine {
 	r := gin.Default()
 	r.SetTrustedProxies(nil) // ponytail: ignores X-Forwarded-For; trust nginx's IP here once ClientIP() matters
 
@@ -16,9 +16,15 @@ func newRouter(db *sql.DB) *gin.Engine {
 	api.POST("/projects", createProject(db))
 	api.GET("/tags", listTags(db))
 	api.POST("/tags", createTag(db))
+	api.GET("/entries", listEntries(db))
+	api.POST("/entries", createEntry(db))
 
 	api.GET("/health", func(c *gin.Context) {
-		if err := db.PingContext(c.Request.Context()); err != nil {
+		sqlDB, err := db.DB()
+		if err == nil {
+			err = sqlDB.PingContext(c.Request.Context())
+		}
+		if err != nil {
 			c.JSON(http.StatusServiceUnavailable, gin.H{"status": "db unavailable"})
 			return
 		}

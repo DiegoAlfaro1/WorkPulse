@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
@@ -8,14 +9,25 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
-func TestOpenDBPragmas(t *testing.T) {
+// testDB opens a fresh migrated database; the *sql.DB is for raw checks and closing.
+func testDB(t *testing.T) (*gorm.DB, *sql.DB) {
 	db, err := openDB(filepath.Join(t.TempDir(), "test.db"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer db.Close()
+	sqlDB, err := db.DB()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { sqlDB.Close() })
+	return db, sqlDB
+}
+
+func TestOpenDBPragmas(t *testing.T) {
+	_, db := testDB(t)
 
 	var mode string
 	var fk int
@@ -26,12 +38,22 @@ func TestOpenDBPragmas(t *testing.T) {
 	}
 }
 
+// A restart re-runs AutoMigrate on an existing file; it must be a no-op, not a failed table rebuild.
+func TestReopenDB(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "test.db")
+	for i := 0; i < 2; i++ {
+		db, err := openDB(path)
+		if err != nil {
+			t.Fatalf("open #%d: %v", i+1, err)
+		}
+		sqlDB, _ := db.DB()
+		sqlDB.Close()
+	}
+}
+
 func TestHealth(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	db, err := openDB(filepath.Join(t.TempDir(), "test.db"))
-	if err != nil {
-		t.Fatal(err)
-	}
+	db, sqlDB := testDB(t)
 	r := newRouter(db)
 
 	w := httptest.NewRecorder()
@@ -40,7 +62,7 @@ func TestHealth(t *testing.T) {
 		t.Fatalf("got %d %s", w.Code, w.Body.String())
 	}
 
-	db.Close()
+	sqlDB.Close()
 	w = httptest.NewRecorder()
 	r.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/api/health", nil))
 	if w.Code != http.StatusServiceUnavailable {
@@ -48,25 +70,28 @@ func TestHealth(t *testing.T) {
 	}
 }
 
-func TestCatalog(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	db, err := openDB(filepath.Join(t.TempDir(), "test.db"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer db.Close()
-	r := newRouter(db)
-	do := func(method, path, body string) (int, string) {
-		w := httptest.NewRecorder()
-		r.ServeHTTP(w, httptest.NewRequest(method, path, strings.NewReader(body)))
-		return w.Code, strings.TrimSpace(w.Body.String())
-	}
+type apiCase struct {
+	method, path, body string
+	code               int
+	resp               string // checked only when non-empty
+}
 
-	cases := []struct {
-		method, path, body string
-		code               int
-		resp               string
-	}{
+// runCases plays the requests in order against one fresh database.
+func runCases(t *testing.T, cases []apiCase) {
+	gin.SetMode(gin.TestMode)
+	db, _ := testDB(t)
+	r := newRouter(db)
+	for _, tc := range cases {
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, httptest.NewRequest(tc.method, tc.path, strings.NewReader(tc.body)))
+		if resp := strings.TrimSpace(w.Body.String()); w.Code != tc.code || (tc.resp != "" && resp != tc.resp) {
+			t.Errorf("%s %s %s: got %d %s", tc.method, tc.path, tc.body, w.Code, resp)
+		}
+	}
+}
+
+func TestCatalog(t *testing.T) {
+	runCases(t, []apiCase{
 		{"GET", "/api/projects", "", 200, `[]`},
 		{"POST", "/api/projects", `{"name":" Website ","client":"Acme","billable":true}`, 201, `{"id":1,"name":"Website","client":"Acme","billable":true}`},
 		{"POST", "/api/projects", `{"name":"website","client":"ACME"}`, 409, ``},
@@ -79,11 +104,22 @@ func TestCatalog(t *testing.T) {
 		{"POST", "/api/tags", `{"name":"two words"}`, 400, ``},
 		{"POST", "/api/tags", `{"name":"bugfix"}`, 201, ``},
 		{"GET", "/api/tags", "", 200, `[{"id":2,"name":"bugfix"},{"id":1,"name":"deep-work"}]`},
-	}
-	for _, tc := range cases {
-		code, resp := do(tc.method, tc.path, tc.body)
-		if code != tc.code || (tc.resp != "" && resp != tc.resp) {
-			t.Errorf("%s %s %s: got %d %s", tc.method, tc.path, tc.body, code, resp)
-		}
-	}
+	})
+}
+
+func TestEntries(t *testing.T) {
+	const ok = `{"member":"m0","project":1,"task":"Design","desc":" Mockups ","tags":[{"name":"Deep-Work"}],"billable":true,"start":1000,"end":5000}`
+	runCases(t, []apiCase{
+		{"POST", "/api/projects", `{"name":"Website","client":"Acme"}`, 201, ``},
+		{"POST", "/api/tags", `{"name":"deep-work"}`, 201, ``},
+		{"GET", "/api/entries", "", 200, `[]`},
+		{"POST", "/api/entries", ok, 201, `{"id":1,"member":"m0","project":1,"task":"Design","desc":"Mockups","tags":[{"id":1,"name":"deep-work"}],"billable":true,"start":1000,"end":5000}`},
+		{"POST", "/api/entries", `{"member":"m0","project":1,"task":"Admin","start":6000,"end":7000}`, 201, ``},
+		{"POST", "/api/entries", strings.Replace(ok, `"end":5000`, `"end":1000`, 1), 400, ``},
+		{"POST", "/api/entries", strings.Replace(ok, `"project":1`, `"project":9`, 1), 400, `{"error":"unknown project"}`},
+		{"POST", "/api/entries", strings.Replace(ok, `Deep-Work`, `nope`, 1), 400, `{"error":"unknown tag: nope"}`},
+		{"POST", "/api/entries", strings.Replace(ok, `"task":"Design",`, ``, 1), 400, ``},
+		{"GET", "/api/entries", "", 200, `[{"id":2,"member":"m0","project":1,"task":"Admin","desc":"","tags":[],"billable":false,"start":6000,"end":7000},` +
+			`{"id":1,"member":"m0","project":1,"task":"Design","desc":"Mockups","tags":[{"id":1,"name":"deep-work"}],"billable":true,"start":1000,"end":5000}]`},
+	})
 }

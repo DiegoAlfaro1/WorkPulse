@@ -23,7 +23,9 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer db.Close()
+	if sqlDB, err := db.DB(); err == nil {
+		defer sqlDB.Close()
+	}
 
 	srv := &http.Server{
 		Addr:              ":" + env("PORT", "8080"),

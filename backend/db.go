@@ -1,9 +1,8 @@
 package main
 
 import (
-	"database/sql"
-
-	_ "modernc.org/sqlite" // pure Go driver: no CGO, works in the static image
+	"github.com/glebarez/sqlite" // pure Go GORM driver (modernc fork): no CGO, works in the static image
+	"gorm.io/gorm"
 )
 
 // WAL lets reads run alongside a write; busy_timeout waits on locks instead of
@@ -15,33 +14,19 @@ const pragmas = "?_txlock=immediate" +
 	"&_pragma=foreign_keys(1)" +
 	"&_pragma=synchronous(NORMAL)"
 
-func openDB(path string) (*sql.DB, error) {
-	db, err := sql.Open("sqlite", "file:"+path+pragmas)
+// openDB connects and brings the schema up to date with the models.
+// TranslateError turns constraint violations into gorm.ErrDuplicatedKey / gorm.ErrForeignKeyViolated.
+func openDB(path string) (*gorm.DB, error) {
+	db, err := gorm.Open(sqlite.Open("file:"+path+pragmas), &gorm.Config{TranslateError: true})
 	if err != nil {
 		return nil, err
 	}
-	if err := db.Ping(); err != nil {
-		db.Close()
-		return nil, err
-	}
-	if _, err := db.Exec(schema); err != nil {
-		db.Close()
+	// ponytail: AutoMigrate only adds tables/columns/indexes; use versioned migrations once a column needs renaming or dropping.
+	if err := db.AutoMigrate(&Project{}, &Tag{}, &Entry{}); err != nil {
+		if sqlDB, _ := db.DB(); sqlDB != nil {
+			sqlDB.Close()
+		}
 		return nil, err
 	}
 	return db, nil
 }
-
-// ponytail: CREATE IF NOT EXISTS only; add a versioned migration list once a table needs ALTER.
-// NOCASE so "Acme" and "acme" count as the same project/tag.
-const schema = `
-CREATE TABLE IF NOT EXISTS projects (
-	id       INTEGER PRIMARY KEY,
-	name     TEXT    NOT NULL COLLATE NOCASE,
-	client   TEXT    NOT NULL DEFAULT '' COLLATE NOCASE,
-	billable INTEGER NOT NULL DEFAULT 1,
-	UNIQUE (name, client)
-);
-CREATE TABLE IF NOT EXISTS tags (
-	id   INTEGER PRIMARY KEY,
-	name TEXT NOT NULL UNIQUE COLLATE NOCASE
-);`

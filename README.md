@@ -49,11 +49,12 @@ go test ./...
 
 Config (env vars): `PORT` (default `8080`), `DB_PATH` (default `workpulse.db`), `GIN_MODE` (`release` in Docker).
 
-SQLite via `modernc.org/sqlite` (pure Go, no CGO), opened in WAL mode with foreign keys on.
+SQLite through GORM with `github.com/glebarez/sqlite` (pure Go, no CGO), opened in WAL mode with foreign keys on.
+The schema comes from the models in `models.go` via `AutoMigrate` at startup (adds tables/columns/indexes only).
 In Docker the database lives in the `data` volume at `/data/workpulse.db`. The backend isn't published
 to the host; the browser reaches it only through nginx at `/api`, so no CORS is needed.
 
-Flat `package main`: `main.go` (config, server, graceful shutdown), `db.go` (SQLite + schema), `router.go` (routes under `/api`), `catalog.go` (projects, tags).
+Flat `package main`: `main.go` (config, server, graceful shutdown), `db.go` (connection + migration), `models.go` (GORM models, also the JSON shapes), `router.go` (routes under `/api`), `catalog.go` (projects, tags), `entries.go` (time entries).
 `GET /api/health` pings the DB and returns `{"status":"ok"}` (503 if the DB is unavailable).
 
 | Route | Body | Notes |
@@ -62,3 +63,5 @@ Flat `package main`: `main.go` (config, server, graceful shutdown), `db.go` (SQL
 | `POST /api/projects` | `{"name","client","billable"}` | 201 with `id`; 409 if name+client exists (case-insensitive); 400 on empty name |
 | `GET /api/tags` | | ordered by name |
 | `POST /api/tags` | `{"name"}` | leading `#` stripped, no spaces; 409 if it exists (case-insensitive) |
+| `GET /api/entries` | | newest first; `tags` as `[{"id","name"}]` |
+| `POST /api/entries` | `{"member","project","task","desc","tags","billable","start","end"}` | `tags` as `[{"name"}]` (existing tags only); times in Unix ms, `end > start`; 400 on unknown project/tag |

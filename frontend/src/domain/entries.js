@@ -13,8 +13,9 @@ export function groupByDay(entries) {
   return [...g.entries()];
 }
 
+/** The id is assigned by the backend when the entry is saved. */
 export const entryFromTimer = (t, end, member) => ({
-  id: 'u' + end, member, start: t.start, end, project: t.project, task: t.task, desc: t.desc,
+  member, start: t.start, end, project: t.project, task: t.task, desc: t.desc,
   tags: t.tags, billable: t.billable,
 });
 

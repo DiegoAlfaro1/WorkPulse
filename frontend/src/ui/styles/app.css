@@ -48,6 +48,7 @@ body{font-variant-numeric:tabular-nums}
 .pop-item{display:flex;align-items:center;gap:10px;background:none;border:0;font:inherit;font-size:14px;text-align:left;padding:7px 12px;cursor:pointer;color:var(--color-text)}
 .pop-new{padding:4px 8px 0}.pop-new p{font-size:12px;margin:4px 4px 0}
 .boot{padding:48px 16px;text-align:center}
+.track-err{margin:12px 0 0;font-weight:600}
 .pop-item:hover{background:color-mix(in srgb,var(--color-text) 7%,transparent)}
 .chk{width:16px;height:16px;border:1.5px solid var(--color-divider);display:grid;place-items:center;color:var(--color-bg)}
 .chk.on{background:var(--color-accent);border-color:var(--color-accent)}

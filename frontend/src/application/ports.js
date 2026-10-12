@@ -13,7 +13,7 @@
  * @property {Array<{id, name, client, billable, color}>} projects
  * @property {Record<string, Object>} projectById
  * @property {string[]} tasks
- * @property {string[]} tags                         from CatalogApiPort
+ * @property {string[]} tags                         from ApiPort
  * @property {Array<{id, name, role}>} members
  * @property {string} currentUserId
  * @property {(p: {name, client, billable}) => Promise<void>} addProject  rejects with the API's error message
@@ -21,13 +21,15 @@
  */
 
 /**
- * @typedef {Object} CatalogApiPort
+ * @typedef {Object} ApiPort
  * @property {() => Promise<Array<{id: string, name, client, billable}>>} listProjects
  * @property {(p: {name, client, billable}) => Promise<{id: string, name, client, billable}>} createProject
  * @property {() => Promise<string[]>} listTags
  * @property {(name: string) => Promise<string>} createTag
+ * @property {() => Promise<Object[]>} listEntries                 newest first, same shape as entryFromTimer + id
+ * @property {(e: Object) => Promise<Object>} createEntry             rejects with the API's error message
  */
 
-/** @typedef {{ storage: StoragePort, catalog: CatalogPort, api: CatalogApiPort }} Services */
+/** @typedef {{ storage: StoragePort, catalog: CatalogPort, api: ApiPort }} Services */
 
 export {};
