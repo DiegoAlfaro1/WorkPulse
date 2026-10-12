@@ -1,3 +1,4 @@
+import { fmtH } from '../../domain/time.js';
 import { Avatar, Meter } from '../atoms';
 import { ProjectName } from '../molecules';
 
@@ -12,9 +13,9 @@ export function TeamTable({ rows, workingDays, active, onPick }) {
         {rows.map(t => (
           <tr key={t.m.id} className={active === t.m.id ? 'is-active' : ''} onClick={() => onPick(t.m.id)}>
             <td><div className="who"><Avatar name={t.m.name} /><div><b>{t.m.name}</b><div className="text-muted">{t.m.role}</div></div></div></td>
-            <td className="num">{t.h.toFixed(1)}h</td>
+            <td className="num">{fmtH(t.h)}</td>
             <td className="num">{t.h ? Math.round(t.b / t.h * 100) : 0}%</td>
-            <td className="num">{t.days ? (t.h / t.days).toFixed(1) : '0.0'}h</td>
+            <td className="num">{fmtH(t.days ? t.h / t.days : 0)}</td>
             <td>{t.top && <span className="nowrap"><ProjectName id={t.top} /></span>}</td>
             <td><div className="util"><Meter pct={target ? t.h / target * 100 : 0} /><span className="num">{target ? Math.round(t.h / target * 100) : 0}%</span></div></td>
           </tr>

@@ -1,4 +1,5 @@
 import { useInsights } from '../../application/useInsights.js';
+import { fmtH } from '../../domain/time.js';
 import { Kicker } from '../atoms';
 import { BarList, Panel, SegmentedControl, StatBlock } from '../molecules';
 import { Heatmap, InsightsFilters, TeamTable, TrendChart } from '../organisms';
@@ -23,10 +24,10 @@ export function InsightsPage({ all, role, now }) {
       <InsightsFilters {...ins} />
 
       <div className="stats">
-        <StatBlock label="Tracked" value={R.tot.toFixed(1)} unit="h" note={`${wd} working days so far · target ${wd * 8 * people}h`} />
+        <StatBlock label="Tracked" value={fmtH(R.tot)} note={`${wd} working days so far · target ${wd * 8 * people}h`} />
         <StatBlock label="Billable" value={R.tot ? Math.round(R.billH / R.tot * 100) : 0} unit="%"
-          note={`${R.billH.toFixed(1)}h billable · ${(R.tot - R.billH).toFixed(1)}h non-billable`} />
-        <StatBlock label="Average per day" value={R.days ? (R.tot / R.days).toFixed(1) : '0.0'} unit="h"
+          note={`${fmtH(R.billH)} billable · ${fmtH(R.tot - R.billH)} non-billable`} />
+        <StatBlock label="Average per day" value={fmtH(R.days ? R.tot / R.days : 0)}
           note={people > 1 ? 'Per person, per day worked' : `Across ${R.days} days worked`} />
       </div>
 

@@ -112,7 +112,7 @@ body{font-variant-numeric:tabular-nums}
 .panel{padding-top:24px;padding-bottom:28px;min-width:0}
 .panel-h{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:16px;font-size:12px}.panel-h h4{margin:0}
 .blist{display:flex;flex-direction:column}
-.brow{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) 56px 40px;gap:12px;align-items:center;padding:9px 0;background:none;border:0;border-bottom:1px solid var(--color-divider);font:inherit;font-size:14px;text-align:left;color:var(--color-text)}
+.brow{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) 72px 40px;gap:12px;align-items:center;padding:9px 0;background:none;border:0;border-bottom:1px solid var(--color-divider);font:inherit;font-size:14px;text-align:left;color:var(--color-text)}
 .brow:not(:disabled){cursor:pointer}.brow:not(:disabled):hover{background:color-mix(in srgb,var(--color-text) 5%,transparent)}
 .brow:disabled{opacity:1}
 .brow.is-active{background:var(--color-accent-100)}

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { DAY, H, sod, sow, overlap, fmtDur, fmtClock } from './time.js';
-import { groupByDay, weekSummary } from './entries.js';
+import { groupByDay, weekSummary, withRunning } from './entries.js';
 import { niceMax, matchesAttrs, buildReport } from './insights.js';
 
 const day = sod(new Date(2026, 9, 14).getTime()); // a Wednesday
@@ -51,4 +51,13 @@ test('buildReport', () => {
   assert.equal(R.team[0].top, 'a');
   const nonBill = matchesAttrs({ client: 'all', project: 'all', bill: 'n' }, catalog.projectById);
   assert.deepEqual(entries.filter(nonBill).map(e => e.id), ['2']);
+});
+
+test('running timer counts as a full entry', () => {
+  const timer = { start: 1000, project: 'a', task: 'Design', desc: 'x', tags: [], billable: true };
+  const [r] = withRunning([], timer, 5000, 'm0');
+  assert.equal(r.member, 'm0');
+  assert.equal(r.end - r.start, 4000);
+  assert.equal(r.billable, true);
+  assert.deepEqual(withRunning([], { ...timer, start: null }, 5000, 'm0'), []);
 });

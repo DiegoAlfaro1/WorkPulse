@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useCatalog } from '../../application/services.jsx';
 import { axisScale } from '../../domain/insights.js';
+import { fmtH } from '../../domain/time.js';
 import { ProjectName } from '../molecules';
 
 export function TrendChart({ buckets, target }) {
@@ -23,9 +24,9 @@ export function TrendChart({ buckets, target }) {
               {hov === i && b.total > 0 && (
                 <div className="tip elev-md" style={i > buckets.length / 2 ? { right: 0 } : { left: 0 }}>
                   <b>{b.long}</b>
-                  <div className="tip-row"><span>Total</span><b>{b.total.toFixed(1)}h</b></div>
+                  <div className="tip-row"><span>Total</span><b>{fmtH(b.total)}</b></div>
                   {projects.filter(p => b.byP[p.id]).map(p => (
-                    <div key={p.id} className="tip-row"><span><ProjectName id={p.id} /></span><span>{b.byP[p.id].toFixed(1)}h</span></div>
+                    <div key={p.id} className="tip-row"><span><ProjectName id={p.id} /></span><span>{fmtH(b.byP[p.id])}</span></div>
                   ))}
                 </div>
               )}

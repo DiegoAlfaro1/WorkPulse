@@ -19,9 +19,9 @@ export const entryFromTimer = (t, end, member) => ({
   tags: t.tags, billable: t.billable,
 });
 
-/** Adds the running timer as a pseudo-entry so live totals include it. */
-export const withRunning = (entries, timer, now) =>
-  timer.start ? [...entries, { start: timer.start, end: now, project: timer.project }] : entries;
+/** Adds the running timer as a pseudo-entry so live totals (and insights filters) include it. */
+export const withRunning = (entries, timer, now, member) =>
+  timer.start ? [...entries, { ...entryFromTimer(timer, now, member), id: 'running' }] : entries;
 
 export function weekSummary(entries, now) {
   const ws = sow(now), today = sod(now);

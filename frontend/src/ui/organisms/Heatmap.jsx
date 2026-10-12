@@ -1,5 +1,5 @@
 import { heatLevel, heatWeeks } from '../../domain/insights.js';
-import { fmtDay } from '../../domain/time.js';
+import { fmtDay, fmtH } from '../../domain/time.js';
 
 const DAY_LABELS = ['Mon', '', 'Wed', '', 'Fri', '', ''];
 const monthOf = t => new Date(t).getMonth();
@@ -17,7 +17,7 @@ export function Heatmap({ data, people, now }) {
         <div className="heat-grid">
           {weeks.map((w, i) => w.map((c, j) => (
             <i key={i + '-' + j} className={'hc l' + (c.future ? 'x' : heatLevel(c.h))}
-              title={c.future ? '' : `${fmtDay(c.t)} — ${c.h.toFixed(1)}h${people > 1 ? ' avg per person' : ''}`} />
+              title={c.future ? '' : `${fmtDay(c.t)} — ${fmtH(c.h)}${people > 1 ? ' avg per person' : ''}`} />
           )))}
         </div>
         <div className="heat-legend">
