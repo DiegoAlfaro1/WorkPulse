@@ -4,7 +4,7 @@ import { dayLabel, fmtDay, fmtDur } from '../../domain/time.js';
 import { Button, Icon } from '../atoms';
 import { EntryRow } from '../molecules';
 
-export function EntryList({ entries, today, onResume, onDelete }) {
+export function EntryList({ entries, today, onResume, onDelete, deleting }) {
   const [daysShown, setDaysShown] = useState(3);
   const groups = useMemo(() => groupByDay(entries), [entries]);
   return (
@@ -15,7 +15,7 @@ export function EntryList({ entries, today, onResume, onDelete }) {
             <h4>{dayLabel(k, today)} <span className="day-date">{fmtDay(k)}</span></h4>
             <span className="day-total">{fmtDur(totalDuration(list))}</span>
           </div>
-          {list.map(e => <EntryRow key={e.id} entry={e} onResume={onResume} onDelete={onDelete} />)}
+          {list.map(e => <EntryRow key={e.id} entry={e} onResume={onResume} onDelete={onDelete} deleting={deleting.has(e.id)} />)}
         </div>
       ))}
       {daysShown < groups.length &&

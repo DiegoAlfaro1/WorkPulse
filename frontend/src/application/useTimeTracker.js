@@ -10,7 +10,7 @@ export function useTimeTracker() {
   const [entries, setEntries] = useState([]);
   const [error, setError] = useState('');
   const saving = useRef(false);
-  const deleting = useRef(new Set());
+  const [deleting, setDeleting] = useState(() => new Set()); // entry ids with a delete in flight
   const [savedTimer, setTimer] = usePersistentState('wp_timer', IDLE_TIMER);
   useEffect(() => { api.listEntries().then(setEntries, err => setError(err.message)); }, [api]);
 
@@ -39,15 +39,15 @@ export function useTimeTracker() {
   };
 
   return {
-    all, mine, timer, error,
+    all, mine, timer, error, deleting,
     updateTimer: patch => setTimer({ ...timer, ...patch }),
     start: () => setTimer({ ...timer, start: Date.now() }),
     stop: () => stopThen(t => ({ ...t, start: null, desc: '', tags: [] })),
     resume: e => stopThen({ desc: e.desc, project: e.project, task: e.task, tags: e.tags, billable: e.billable, start: Date.now() }),
-    // Ignores a repeat click on an entry whose delete is still in flight (it would 404).
+    // The UI disables an entry's delete button while it's in `deleting`; the guard covers any other caller.
     remove: async e => {
-      if (deleting.current.has(e.id)) return;
-      deleting.current.add(e.id);
+      if (deleting.has(e.id)) return;
+      setDeleting(d => new Set(d).add(e.id));
       try {
         await api.deleteEntry(e.id);
         setEntries(u => u.filter(x => x.id !== e.id));
@@ -55,7 +55,7 @@ export function useTimeTracker() {
       } catch (err) {
         setError(err.message);
       } finally {
-        deleting.current.delete(e.id);
+        setDeleting(d => { const n = new Set(d); n.delete(e.id); return n; });
       }
     },
   };
