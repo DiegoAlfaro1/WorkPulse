@@ -28,6 +28,7 @@
  * @property {(name: string) => Promise<string>} createTag
  * @property {() => Promise<Object[]>} listEntries                 newest first, same shape as entryFromTimer + id
  * @property {(e: Object) => Promise<Object>} createEntry             rejects with the API's error message
+ * @property {(id: string) => Promise<void>} deleteEntry              rejects with the API's error message
  */
 
 /** @typedef {{ storage: StoragePort, catalog: CatalogPort, api: ApiPort }} Services */

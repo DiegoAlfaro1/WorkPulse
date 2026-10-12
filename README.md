@@ -65,3 +65,4 @@ Flat `package main`: `main.go` (config, server, graceful shutdown), `db.go` (con
 | `POST /api/tags` | `{"name"}` | leading `#` stripped, no spaces; 409 if it exists (case-insensitive) |
 | `GET /api/entries` | | newest first; `tags` as `[{"id","name"}]` |
 | `POST /api/entries` | `{"member","project","task","desc","tags","billable","start","end"}` | `tags` as `[{"name"}]` (existing tags only); times in Unix ms, `end > start`; 400 on unknown project/tag |
+| `DELETE /api/entries/:id` | | 204; 404 if it doesn't exist; its tag links are removed too |

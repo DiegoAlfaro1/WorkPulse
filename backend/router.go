@@ -18,6 +18,7 @@ func newRouter(db *gorm.DB) *gin.Engine {
 	api.POST("/tags", createTag(db))
 	api.GET("/entries", listEntries(db))
 	api.POST("/entries", createEntry(db))
+	api.DELETE("/entries/:id", deleteEntry(db))
 
 	api.GET("/health", func(c *gin.Context) {
 		sqlDB, err := db.DB()

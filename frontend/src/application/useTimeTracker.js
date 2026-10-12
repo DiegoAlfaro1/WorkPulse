@@ -10,6 +10,7 @@ export function useTimeTracker() {
   const [entries, setEntries] = useState([]);
   const [error, setError] = useState('');
   const saving = useRef(false);
+  const deleting = useRef(new Set());
   const [savedTimer, setTimer] = usePersistentState('wp_timer', IDLE_TIMER);
   useEffect(() => { api.listEntries().then(setEntries, err => setError(err.message)); }, [api]);
 
@@ -43,7 +44,19 @@ export function useTimeTracker() {
     start: () => setTimer({ ...timer, start: Date.now() }),
     stop: () => stopThen(t => ({ ...t, start: null, desc: '', tags: [] })),
     resume: e => stopThen({ desc: e.desc, project: e.project, task: e.task, tags: e.tags, billable: e.billable, start: Date.now() }),
-    // ponytail: in-memory only, the entry comes back on reload; needs DELETE /api/entries/:id.
-    remove: e => setEntries(u => u.filter(x => x.id !== e.id)),
+    // Ignores a repeat click on an entry whose delete is still in flight (it would 404).
+    remove: async e => {
+      if (deleting.current.has(e.id)) return;
+      deleting.current.add(e.id);
+      try {
+        await api.deleteEntry(e.id);
+        setEntries(u => u.filter(x => x.id !== e.id));
+        setError('');
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        deleting.current.delete(e.id);
+      }
+    },
   };
 }

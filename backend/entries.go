@@ -2,6 +2,7 @@ package main
 
 import (
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -61,6 +62,27 @@ func createEntry(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 		c.JSON(http.StatusCreated, e)
+	}
+}
+
+// deleteEntry removes the entry; its entry_tags links go with it (ON DELETE CASCADE).
+func deleteEntry(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+			return
+		}
+		res := db.WithContext(c).Delete(&Entry{}, id)
+		if res.Error != nil {
+			dbError(c, res.Error)
+			return
+		}
+		if res.RowsAffected == 0 {
+			c.JSON(http.StatusNotFound, gin.H{"error": "not found"})
+			return
+		}
+		c.Status(http.StatusNoContent)
 	}
 }
 

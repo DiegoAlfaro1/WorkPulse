@@ -121,5 +121,9 @@ func TestEntries(t *testing.T) {
 		{"POST", "/api/entries", strings.Replace(ok, `"task":"Design",`, ``, 1), 400, ``},
 		{"GET", "/api/entries", "", 200, `[{"id":2,"member":"m0","project":1,"task":"Admin","desc":"","tags":[],"billable":false,"start":6000,"end":7000},` +
 			`{"id":1,"member":"m0","project":1,"task":"Design","desc":"Mockups","tags":[{"id":1,"name":"deep-work"}],"billable":true,"start":1000,"end":5000}]`},
+		{"DELETE", "/api/entries/1", "", 204, ``},
+		{"DELETE", "/api/entries/1", "", 404, `{"error":"not found"}`},
+		{"DELETE", "/api/entries/abc", "", 400, ``},
+		{"GET", "/api/entries", "", 200, `[{"id":2,"member":"m0","project":1,"task":"Admin","desc":"","tags":[],"billable":false,"start":6000,"end":7000}]`},
 	})
 }

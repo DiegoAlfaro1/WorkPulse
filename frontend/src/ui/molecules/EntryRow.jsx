@@ -16,7 +16,7 @@ export function EntryRow({ entry: e, onResume, onDelete }) {
       <span className="erow-dur">{fmtDur(e.end - e.start)}</span>
       <div className="erow-act">
         <Button variant="icon" title="Resume this entry" aria-label="Resume this entry" onClick={() => onResume(e)}><Icon n="play" /></Button>
-        <Button variant="icon" title="Delete" aria-label="Delete" onClick={() => onDelete(e)}><Icon n="trash" /></Button>
+        <Button variant="icon" title="Delete" aria-label="Delete" onClick={() => window.confirm("Delete this entry? This can't be undone.") && onDelete(e)}><Icon n="trash" /></Button>
       </div>
     </div>
   );
