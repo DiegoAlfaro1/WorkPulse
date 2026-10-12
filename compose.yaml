@@ -13,6 +13,10 @@ services:
           path: ./frontend
   backend:
     build: ./backend
+    # Creates the super admin on first start (ignored once one exists). Put them in a .env file next to this one.
+    environment:
+      SUPERADMIN_EMAIL: ${SUPERADMIN_EMAIL:-}
+      SUPERADMIN_PASSWORD: ${SUPERADMIN_PASSWORD:-}
     # Not published: reached only through the frontend's nginx at /api.
     volumes:
       - data:/data

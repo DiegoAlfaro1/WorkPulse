@@ -26,6 +26,9 @@ func main() {
 	if sqlDB, err := db.DB(); err == nil {
 		defer sqlDB.Close()
 	}
+	if err := seedSuperAdmin(db, os.Getenv("SUPERADMIN_EMAIL"), os.Getenv("SUPERADMIN_PASSWORD")); err != nil {
+		log.Fatal(err)
+	}
 
 	srv := &http.Server{
 		Addr:              ":" + env("PORT", "8080"),

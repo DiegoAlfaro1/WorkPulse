@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { sod } from '../domain/time.js';
 import { buildReport, matchesAttrs, rangeBounds, workingDaysSoFar } from '../domain/insights.js';
+import { seesTeam } from '../domain/roles.js';
 import { useCatalog, usePersistentState } from './services.jsx';
 
 export function useInsights({ all, role, now }) {
@@ -12,10 +13,12 @@ export function useInsights({ all, role, now }) {
   const [project, setProject] = useState('all');
   const [bill, setBill] = useState('all');
 
-  const scope = role === 'manager' ? savedScope : 'me';
+  const scope = seesTeam(role) ? savedScope : 'me';
   const today = sod(now); // memo key: changes once a day, not every clock tick
   const [from, to] = useMemo(() => rangeBounds(range, today), [range, today]);
-  const people = scope === 'me' || member !== 'all' ? 1 : catalog.members.length;
+  // Deactivated people still show (their history counts) but don't add to the hours target.
+  const active = catalog.members.filter(m => m.active).length;
+  const people = scope === 'me' || member !== 'all' ? 1 : active;
 
   const attrs = useMemo(() => matchesAttrs({ client, project, bill }, catalog.projectById), [client, project, bill, catalog]);
   const scoped = useMemo(() => all.filter(e =>
@@ -32,7 +35,7 @@ export function useInsights({ all, role, now }) {
     target: (report.weekly ? 40 : 8) * people,
     filtered: client !== 'all' || project !== 'all' || bill !== 'all' || member !== 'all',
     scopeName: scope === 'me' ? 'My time'
-      : member === 'all' ? `Team · ${catalog.members.length} people`
+      : member === 'all' ? `Team · ${active} people`
         : catalog.members.find(m => m.id === member).name,
     setScope: v => { setSavedScope(v); setMember('all'); },
     setRange, setMember, setProject, setBill,

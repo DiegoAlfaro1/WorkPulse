@@ -22,7 +22,7 @@ func openDB(path string) (*gorm.DB, error) {
 		return nil, err
 	}
 	// ponytail: AutoMigrate only adds tables/columns/indexes; use versioned migrations once a column needs renaming or dropping.
-	if err := db.AutoMigrate(&Project{}, &Tag{}, &Entry{}); err != nil {
+	if err := db.AutoMigrate(&Company{}, &Team{}, &User{}, &Session{}, &Project{}, &Tag{}, &Entry{}); err != nil {
 		if sqlDB, _ := db.DB(); sqlDB != nil {
 			sqlDB.Close()
 		}

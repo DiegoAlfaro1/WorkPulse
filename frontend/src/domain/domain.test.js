@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { DAY, H, sod, sow, overlap, fmtDur, fmtClock } from './time.js';
 import { groupByDay, weekSummary, withRunning } from './entries.js';
+import { assignableRoles, assignableTeams, canDeactivate, seesTeam } from './roles.js';
 import { niceMax, matchesAttrs, buildReport } from './insights.js';
 
 const day = sod(new Date(2026, 9, 14).getTime()); // a Wednesday
@@ -60,4 +61,18 @@ test('running timer counts as a full entry', () => {
   assert.equal(r.end - r.start, 4000);
   assert.equal(r.billable, true);
   assert.deepEqual(withRunning([], { ...timer, start: null }, 5000, 'm0'), []);
+});
+
+test('role rules mirror the backend', () => {
+  const design = { id: '1' }, eng = { id: '2' };
+  const admin = { id: 'a', role: 'admin', teams: [] }, mgr = { id: 'm', role: 'manager', teams: [design] };
+  const dana = { id: 'd', role: 'employee', teams: [design] }, sam = { id: 's', role: 'employee', teams: [design, eng] };
+  assert.equal(canDeactivate(mgr, dana), true);
+  assert.equal(canDeactivate(mgr, sam), false);
+  assert.equal(canDeactivate(mgr, mgr), false);
+  assert.equal(canDeactivate(admin, mgr), true);
+  assert.equal(canDeactivate(admin, admin), false);
+  assert.deepEqual(assignableTeams(mgr, [design, eng]), [design]);
+  assert.deepEqual(assignableRoles(mgr), ['employee']);
+  assert.equal(seesTeam('employee'), false);
 });

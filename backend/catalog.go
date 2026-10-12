@@ -12,7 +12,7 @@ import (
 func listProjects(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		ps := []Project{}
-		if err := db.WithContext(c).Order("id").Find(&ps).Error; err != nil {
+		if err := db.WithContext(c).Where("company_id = ?", *me(c).CompanyID).Order("id").Find(&ps).Error; err != nil {
 			dbError(c, err)
 			return
 		}
@@ -27,13 +27,13 @@ func createProject(db *gorm.DB) gin.HandlerFunc {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		p.ID = 0 // assigned by the database, never by the client
+		p.ID, p.CompanyID = 0, *me(c).CompanyID // never taken from the client
 		p.Name, p.Client = strings.TrimSpace(p.Name), strings.TrimSpace(p.Client)
 		if p.Name == "" {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "name is required"})
 			return
 		}
-		if err := db.WithContext(c).Create(&p).Error; err != nil {
+		if err := db.WithContext(c).Omit("Company").Create(&p).Error; err != nil {
 			dbError(c, err)
 			return
 		}
@@ -44,7 +44,7 @@ func createProject(db *gorm.DB) gin.HandlerFunc {
 func listTags(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		ts := []Tag{}
-		if err := db.WithContext(c).Order("name").Find(&ts).Error; err != nil {
+		if err := db.WithContext(c).Where("company_id = ?", *me(c).CompanyID).Order("name").Find(&ts).Error; err != nil {
 			dbError(c, err)
 			return
 		}
@@ -59,13 +59,13 @@ func createTag(db *gorm.DB) gin.HandlerFunc {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		t.ID = 0
+		t.ID, t.CompanyID = 0, *me(c).CompanyID
 		t.Name = strings.TrimPrefix(strings.TrimSpace(t.Name), "#")
 		if t.Name == "" || strings.ContainsAny(t.Name, " \t\n") {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "name is required and must not contain spaces"})
 			return
 		}
-		if err := db.WithContext(c).Create(&t).Error; err != nil {
+		if err := db.WithContext(c).Omit("Company").Create(&t).Error; err != nil {
 			dbError(c, err)
 			return
 		}
@@ -73,7 +73,7 @@ func createTag(db *gorm.DB) gin.HandlerFunc {
 	}
 }
 
-// dbError maps unique violations to 409 and foreign-key violations (only entries.project_id) to 400;
+// dbError maps unique violations to 409 and foreign-key violations (in practice entries.project_id) to 400;
 // anything else is logged and hidden behind a 500.
 func dbError(c *gin.Context, err error) {
 	switch {

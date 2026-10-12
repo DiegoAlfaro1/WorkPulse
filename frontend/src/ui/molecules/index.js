@@ -9,3 +9,4 @@ export { EntryRow } from './EntryRow.jsx';
 export { BarList } from './BarList.jsx';
 export { StatBlock } from './StatBlock.jsx';
 export { Panel } from './Panel.jsx';
+export { TeamChecklist } from './TeamChecklist.jsx';

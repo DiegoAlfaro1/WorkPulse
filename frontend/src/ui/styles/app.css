@@ -24,7 +24,8 @@ body{font-variant-numeric:tabular-nums}
 .runpill{display:flex;align-items:center;gap:8px;background:var(--color-accent-100);color:var(--color-accent-800);border:0;font:inherit;font-size:13px;padding:6px 10px;cursor:pointer}
 .runpill:hover{background:var(--color-accent-200)}
 .av{display:inline-grid;place-items:center;width:32px;height:32px;flex:none;background:var(--color-text);color:var(--color-bg);font-size:12px;font-weight:600}
-.rolesw .seg-opt{padding:5px 10px;font-size:12px}
+.nav-user{margin-left:8px;font:inherit;font-size:14px;text-align:left;color:inherit;background:none;border:0;border-bottom:2px solid transparent;padding:4px 2px;cursor:pointer}
+.nav-user .text-muted{font-size:12px}.nav-user:hover b,.nav-user.on b{color:var(--color-accent)}.nav-user.on{border-bottom-color:var(--color-accent)}
 .wp-shell{max-width:1360px;margin:0 auto;padding:32px}
 .sw{display:inline-block;width:10px;height:10px;flex:none;margin-right:8px;vertical-align:baseline}
 .rec{display:inline-block;width:8px;height:8px;background:var(--color-accent);margin-right:8px;animation:blink 1.2s steps(2) infinite}
@@ -151,3 +152,31 @@ body{font-variant-numeric:tabular-nums}
 @media (max-width:1100px){.timer{grid-template-columns:minmax(0,1fr) 168px}.timer-main{grid-column:1/-1;border-bottom:2px solid var(--color-divider)}.timer-clock{border-left:0}.track-grid{grid-template-columns:minmax(0,1fr)}.entries{padding-right:0;border-right:0}.week{padding-left:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px;border-top:2px solid var(--color-divider);margin-top:24px}.ins-row.two{grid-template-columns:minmax(0,1fr)}.ins-row.two .panel:first-child{padding-right:0;border-right:0;border-bottom:2px solid var(--color-divider)}.ins-row.two .panel+.panel{padding-left:0}.timer-fields{grid-template-columns:repeat(2,minmax(0,1fr))}.erow{grid-template-columns:minmax(0,1fr) 100px 22px 96px 64px 76px}.erow-tags{display:none}}
 .pform{display:grid;gap:12px}
 .pform-color{width:48px;height:32px;padding:0;border:1px solid var(--color-divider);background:none;cursor:pointer}
+/* user management */
+.users-grid{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:40px;align-items:start}
+.checks{display:flex;flex-wrap:wrap;gap:8px 16px}
+.check{display:flex;align-items:center;gap:6px;font-size:14px;cursor:pointer}
+.row-act{text-align:right;white-space:nowrap}
+.table .tag{margin:2px 6px 2px 0}
+.form-btns{display:flex;gap:8px}
+.team-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--color-divider);font-size:14px}
+.team-new{display:flex;gap:8px}.team-new .input{flex:1;min-width:0}
+@media (max-width:1100px){.users-grid{grid-template-columns:minmax(0,1fr)}}
+.is-inactive .who,.is-inactive td:nth-child(3),.panel.is-inactive .table{opacity:.55}
+.tag-off{background:var(--color-neutral-200);color:var(--color-neutral-800);font-size:11px}
+.btn-danger{color:var(--color-accent-700)}
+.form-ok{margin:0;font-weight:600;color:var(--color-text)}
+.profile{display:grid;gap:20px}
+.facts{display:grid;grid-template-columns:96px minmax(0,1fr);gap:12px 16px;margin:0;font-size:14px}
+.facts dt{font-weight:600}.facts dd{margin:0}.facts .tag{margin:2px 6px 2px 0}
+.panel-h .row-act{display:flex;align-items:center;gap:12px}
+/* login */
+.login{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);min-height:100vh}
+.login-brand{display:flex;flex-direction:column;justify-content:space-between;gap:32px;padding:40px;background:var(--color-surface);border-right:2px solid var(--color-text)}
+.login-brand .nav-brand{display:flex;align-items:center;gap:10px}
+.login-title{font-size:64px;line-height:1;letter-spacing:-.02em;margin:12px 0 0}
+.login-title em{font-style:normal;color:var(--color-accent)}
+.login-form{display:grid;place-items:center;padding:40px 16px}
+.login-form form{width:100%;max-width:360px}
+.login-form h2{margin:4px 0 8px}.login-form p{margin:0}
+@media (max-width:800px){.login{grid-template-columns:minmax(0,1fr);min-height:0}.login-brand{border-right:0;border-bottom:2px solid var(--color-text);padding:24px 16px}.login-title{font-size:40px}.login-clock{display:none}}

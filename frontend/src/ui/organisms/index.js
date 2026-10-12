@@ -7,3 +7,8 @@ export { TrendChart } from './TrendChart.jsx';
 export { Heatmap } from './Heatmap.jsx';
 export { TeamTable } from './TeamTable.jsx';
 export { ProjectForm } from './ProjectForm.jsx';
+export { UserForm } from './UserForm.jsx';
+export { UserTable } from './UserTable.jsx';
+export { TeamsPanel } from './TeamsPanel.jsx';
+export { CompanyForm } from './CompanyForm.jsx';
+export { PasswordForm } from './PasswordForm.jsx';

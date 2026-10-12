@@ -11,7 +11,7 @@ export function useTimeTracker() {
   const [error, setError] = useState('');
   const saving = useRef(false);
   const [deleting, setDeleting] = useState(() => new Set()); // entry ids with a delete in flight
-  const [savedTimer, setTimer] = usePersistentState('wp_timer', IDLE_TIMER);
+  const [savedTimer, setTimer] = usePersistentState('wp_timer:' + currentUserId, IDLE_TIMER);
   useEffect(() => { api.listEntries().then(setEntries, err => setError(err.message)); }, [api]);
 
   // Entries/timer pointing at a project that no longer exists (e.g. the old demo p1–p5) are hidden, not deleted.

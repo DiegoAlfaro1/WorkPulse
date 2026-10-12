@@ -2,18 +2,19 @@ package main
 
 import (
 	"net/http"
-	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
 
-// ponytail: returns every entry; add from/to query params once the table gets big.
+// listEntries returns the entries of every user the caller may see (see visibleUsers).
+// ponytail: returns all of them; add from/to query params once the table gets big.
 func listEntries(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		es := []Entry{}
-		if err := db.WithContext(c).Preload("Tags").Order("start_ms DESC").Find(&es).Error; err != nil {
+		users := visibleUsers(db, me(c)).Select("users.id")
+		if err := db.WithContext(c).Preload("Tags").Where("user_id IN (?)", users).Order("start_ms DESC").Find(&es).Error; err != nil {
 			dbError(c, err)
 			return
 		}
@@ -26,7 +27,8 @@ func listEntries(db *gorm.DB) gin.HandlerFunc {
 	}
 }
 
-// createEntry requires a description and a project (binding) and takes tags by name ({"name": ...}) and links the existing tags; it never creates tags.
+// createEntry records time for the signed-in user. It requires a description and one of the company's projects,
+// and takes tags by name ({"name": ...}), linking the company's existing tags; it never creates tags.
 func createEntry(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var e Entry
@@ -34,10 +36,21 @@ func createEntry(db *gorm.DB) gin.HandlerFunc {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		e.ID = 0
+		u := me(c)
+		e.ID, e.UserID = 0, u.ID
 		e.Desc = strings.TrimSpace(e.Desc)
 		if e.Desc == "" {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "description is required"})
+			return
+		}
+
+		var n int64
+		if err := db.WithContext(c).Model(&Project{}).Where("id = ? AND company_id = ?", e.ProjectID, *u.CompanyID).Count(&n).Error; err != nil {
+			dbError(c, err)
+			return
+		}
+		if n == 0 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "unknown project"})
 			return
 		}
 
@@ -47,7 +60,7 @@ func createEntry(db *gorm.DB) gin.HandlerFunc {
 		}
 		e.Tags = []Tag{}
 		if len(names) > 0 {
-			if err := db.WithContext(c).Where("name IN ?", names).Find(&e.Tags).Error; err != nil {
+			if err := db.WithContext(c).Where("company_id = ? AND name IN ?", *u.CompanyID, names).Find(&e.Tags).Error; err != nil {
 				dbError(c, err)
 				return
 			}
@@ -59,9 +72,9 @@ func createEntry(db *gorm.DB) gin.HandlerFunc {
 			}
 		}
 
-		// Omit: don't upsert the empty Project or the tags themselves, only write the entry_tags links.
+		// Omit: don't upsert the empty Project/User or the tags themselves, only write the entry_tags links.
 		// Create wraps the entry and its links in one transaction.
-		if err := db.WithContext(c).Omit("Project", "Tags.*").Create(&e).Error; err != nil {
+		if err := db.WithContext(c).Omit("Project", "User", "Tags.*").Create(&e).Error; err != nil {
 			dbError(c, err)
 			return
 		}
@@ -69,15 +82,20 @@ func createEntry(db *gorm.DB) gin.HandlerFunc {
 	}
 }
 
-// deleteEntry removes the entry; its entry_tags links go with it (ON DELETE CASCADE).
+// deleteEntry removes one of the caller's own entries (an admin: anyone's in the company);
+// its entry_tags links go with it (ON DELETE CASCADE).
 func deleteEntry(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		id, err := strconv.ParseUint(c.Param("id"), 10, 64)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		id, ok := idParam(c)
+		if !ok {
 			return
 		}
-		res := db.WithContext(c).Delete(&Entry{}, id)
+		u := me(c)
+		owners := db.Model(&User{}).Select("id").Where("id = ?", u.ID)
+		if u.Role == RoleAdmin {
+			owners = visibleUsers(db, u).Select("users.id")
+		}
+		res := db.WithContext(c).Where("user_id IN (?)", owners).Delete(&Entry{}, id)
 		if res.Error != nil {
 			dbError(c, res.Error)
 			return

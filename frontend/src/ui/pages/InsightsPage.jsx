@@ -1,4 +1,5 @@
 import { useInsights } from '../../application/useInsights.js';
+import { seesTeam } from '../../domain/roles.js';
 import { fmtH } from '../../domain/time.js';
 import { Kicker } from '../atoms';
 import { BarList, Panel, SegmentedControl, StatBlock } from '../molecules';
@@ -16,7 +17,7 @@ export function InsightsPage({ all, role, now }) {
       <div className="ins-head">
         <div><Kicker>Insights</Kicker><h1>{ins.scopeName}</h1></div>
         <div className="ins-ctrls">
-          {role === 'manager' && <SegmentedControl name="scope" value={ins.scope} onChange={ins.setScope} options={SCOPES} />}
+          {seesTeam(role) && <SegmentedControl name="scope" value={ins.scope} onChange={ins.setScope} options={SCOPES} />}
           <SegmentedControl name="range" value={ins.range} onChange={ins.setRange} options={RANGES} />
         </div>
       </div>
