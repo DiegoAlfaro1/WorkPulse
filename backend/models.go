@@ -8,6 +8,7 @@ type Project struct {
 	Name     string `json:"name" gorm:"type:text collate nocase;not null;uniqueIndex:idx_projects_name_client" binding:"max=100"`
 	Client   string `json:"client" gorm:"type:text collate nocase;not null;uniqueIndex:idx_projects_name_client" binding:"max=100"`
 	Billable bool   `json:"billable" gorm:"not null"`
+	Color    string `json:"color" gorm:"not null;default:''" binding:"omitempty,hexcolor,max=7"` // "" = frontend picks one
 }
 
 type Tag struct {

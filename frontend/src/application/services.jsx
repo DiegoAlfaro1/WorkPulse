@@ -4,7 +4,7 @@ const ServicesContext = createContext(null);
 const COLORS = ['var(--color-accent)', 'var(--color-neutral-900)', 'var(--color-accent-300)', 'var(--color-neutral-500)', 'var(--color-accent-800)'];
 
 /**
- * Adds the API's projects and tags to the static catalog. Clients are derived from projects; colors from their order.
+ * Adds the API's projects and tags to the static catalog. Clients are derived from projects; colors are picked on creation, or else from their order.
  * Children render only once both lists have loaded, so nothing sees an empty catalog and drops the running timer.
  */
 export function ServicesProvider({ services, children }) {
@@ -17,7 +17,7 @@ export function ServicesProvider({ services, children }) {
   }, [api]);
   const value = useMemo(() => {
     if (!data) return null;
-    const projects = data.projects.map((p, i) => ({ ...p, color: COLORS[i % COLORS.length] }));
+    const projects = data.projects.map((p, i) => ({ ...p, color: p.color || COLORS[i % COLORS.length] }));
     return {
       ...services,
       catalog: {

@@ -12,7 +12,7 @@ export function ProjectForm() {
     const form = e.target, f = new FormData(form), name = f.get('name').trim();
     if (!name) return;
     try {
-      await addProject({ name, client: f.get('client').trim() || 'No client', billable });
+      await addProject({ name, client: f.get('client').trim() || 'No client', billable, color: f.get('color') });
       form.reset();
       setError('');
     } catch (err) {
@@ -25,6 +25,7 @@ export function ProjectForm() {
       <Field label="Name"><input className="input" name="name" required /></Field>
       <Field label="Client"><input className="input" name="client" list="wp-clients" placeholder="No client" /></Field>
       <datalist id="wp-clients">{Object.keys(clients).map(c => <option key={c} value={c} />)}</datalist>
+      <Field label="Color"><input className="pform-color" type="color" name="color" defaultValue="#2557a7" /></Field>
       <Field label="Billing"><BillableToggle value={billable} onChange={setBillable} /></Field>
       {error && <p className="text-muted" role="alert">{error}</p>}
       <Button variant="secondary" type="submit">Add project</Button>

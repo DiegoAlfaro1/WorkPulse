@@ -14,12 +14,12 @@ export function WeekPanel({ entries, now, children }) {
     <aside className="week">
       <div className="week-sec">
         <Kicker>Today</Kicker>
-        <div className="big">{fmtDur(todayH * H)}<span className="big-of">/ 8:00</span></div>
+        <div className="big">{fmtDur(todayH * H)}<span className="big-of">/ 8:00:00</span></div>
         <Meter pct={todayH / 8 * 100} />
       </div>
       <div className="week-sec">
         <Kicker>This week</Kicker>
-        <div className="big">{fmtDur(total * H)}<span className="big-of">/ 40:00</span></div>
+        <div className="big">{fmtDur(total * H)}<span className="big-of">/ 40:00:00</span></div>
         <div className="wbars">
           {days.map((d, i) => (
             <div key={i} className={'wbar' + (d.isToday ? ' is-today' : '') + (d.isFuture ? ' is-future' : '')}>

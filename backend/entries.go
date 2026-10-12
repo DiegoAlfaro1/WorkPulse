@@ -26,7 +26,7 @@ func listEntries(db *gorm.DB) gin.HandlerFunc {
 	}
 }
 
-// createEntry takes tags by name ({"name": ...}) and links the existing tags; it never creates tags.
+// createEntry requires a description and a project (binding) and takes tags by name ({"name": ...}) and links the existing tags; it never creates tags.
 func createEntry(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var e Entry
@@ -36,6 +36,10 @@ func createEntry(db *gorm.DB) gin.HandlerFunc {
 		}
 		e.ID = 0
 		e.Desc = strings.TrimSpace(e.Desc)
+		if e.Desc == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "description is required"})
+			return
+		}
 
 		names := make([]string, len(e.Tags))
 		for i, t := range e.Tags {

@@ -93,12 +93,14 @@ func runCases(t *testing.T, cases []apiCase) {
 func TestCatalog(t *testing.T) {
 	runCases(t, []apiCase{
 		{"GET", "/api/projects", "", 200, `[]`},
-		{"POST", "/api/projects", `{"name":" Website ","client":"Acme","billable":true}`, 201, `{"id":1,"name":"Website","client":"Acme","billable":true}`},
+		{"POST", "/api/projects", `{"name":" Website ","client":"Acme","billable":true}`, 201, `{"id":1,"name":"Website","client":"Acme","billable":true,"color":""}`},
 		{"POST", "/api/projects", `{"name":"website","client":"ACME"}`, 409, ``},
 		{"POST", "/api/projects", `{"name":"Website","client":"Other"}`, 201, ``},
 		{"POST", "/api/projects", `{"name":"  "}`, 400, ``},
+		{"POST", "/api/projects", `{"name":"Red","color":"red"}`, 400, ``},
+		{"POST", "/api/projects", `{"name":"Red","color":"#ec3013"}`, 201, `{"id":3,"name":"Red","client":"","billable":false,"color":"#ec3013"}`},
 		{"POST", "/api/projects", `not json`, 400, ``},
-		{"GET", "/api/projects", "", 200, `[{"id":1,"name":"Website","client":"Acme","billable":true},{"id":2,"name":"Website","client":"Other","billable":false}]`},
+		{"GET", "/api/projects", "", 200, `[{"id":1,"name":"Website","client":"Acme","billable":true,"color":""},{"id":2,"name":"Website","client":"Other","billable":false,"color":""},{"id":3,"name":"Red","client":"","billable":false,"color":"#ec3013"}]`},
 		{"POST", "/api/tags", `{"name":"#deep-work"}`, 201, `{"id":1,"name":"deep-work"}`},
 		{"POST", "/api/tags", `{"name":"Deep-Work"}`, 409, ``},
 		{"POST", "/api/tags", `{"name":"two words"}`, 400, ``},
@@ -114,16 +116,18 @@ func TestEntries(t *testing.T) {
 		{"POST", "/api/tags", `{"name":"deep-work"}`, 201, ``},
 		{"GET", "/api/entries", "", 200, `[]`},
 		{"POST", "/api/entries", ok, 201, `{"id":1,"member":"m0","project":1,"task":"Design","desc":"Mockups","tags":[{"id":1,"name":"deep-work"}],"billable":true,"start":1000,"end":5000}`},
-		{"POST", "/api/entries", `{"member":"m0","project":1,"task":"Admin","start":6000,"end":7000}`, 201, ``},
+		{"POST", "/api/entries", `{"member":"m0","project":1,"task":"Admin","desc":"Email","start":6000,"end":7000}`, 201, ``},
 		{"POST", "/api/entries", strings.Replace(ok, `"end":5000`, `"end":1000`, 1), 400, ``},
 		{"POST", "/api/entries", strings.Replace(ok, `"project":1`, `"project":9`, 1), 400, `{"error":"unknown project"}`},
 		{"POST", "/api/entries", strings.Replace(ok, `Deep-Work`, `nope`, 1), 400, `{"error":"unknown tag: nope"}`},
 		{"POST", "/api/entries", strings.Replace(ok, `"task":"Design",`, ``, 1), 400, ``},
-		{"GET", "/api/entries", "", 200, `[{"id":2,"member":"m0","project":1,"task":"Admin","desc":"","tags":[],"billable":false,"start":6000,"end":7000},` +
+		{"POST", "/api/entries", strings.Replace(ok, `" Mockups "`, `"  "`, 1), 400, `{"error":"description is required"}`},
+		{"POST", "/api/entries", strings.Replace(ok, `"project":1,`, ``, 1), 400, ``},
+		{"GET", "/api/entries", "", 200, `[{"id":2,"member":"m0","project":1,"task":"Admin","desc":"Email","tags":[],"billable":false,"start":6000,"end":7000},` +
 			`{"id":1,"member":"m0","project":1,"task":"Design","desc":"Mockups","tags":[{"id":1,"name":"deep-work"}],"billable":true,"start":1000,"end":5000}]`},
 		{"DELETE", "/api/entries/1", "", 204, ``},
 		{"DELETE", "/api/entries/1", "", 404, `{"error":"not found"}`},
 		{"DELETE", "/api/entries/abc", "", 400, ``},
-		{"GET", "/api/entries", "", 200, `[{"id":2,"member":"m0","project":1,"task":"Admin","desc":"","tags":[],"billable":false,"start":6000,"end":7000}]`},
+		{"GET", "/api/entries", "", 200, `[{"id":2,"member":"m0","project":1,"task":"Admin","desc":"Email","tags":[],"billable":false,"start":6000,"end":7000}]`},
 	})
 }

@@ -19,7 +19,8 @@ const entries = [
 test('time helpers', () => {
   assert.equal(overlap({ start: 0, end: 10 }, 5, 20), 5);
   assert.equal(overlap({ start: 0, end: 10 }, 10, 20), 0);
-  assert.equal(fmtDur(90 * 6e4), '1:30');
+  assert.equal(fmtDur(90 * 6e4), '1:30:00');
+  assert.equal(fmtDur(12345), '0:00:12');
   assert.equal(fmtClock(3723e3), '01:02:03');
   assert.equal(fmtClock(-400), '00:00:00');
   assert.equal(sow(day + 15 * H), sod(new Date(2026, 9, 12).getTime()));
