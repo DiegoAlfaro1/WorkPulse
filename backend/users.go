@@ -127,8 +127,7 @@ func createUser(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		u := me(c)
 		var in newUser
-		if err := c.ShouldBindJSON(&in); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		if !bindJSON(c, &in) {
 			return
 		}
 		if u.Role == RoleManager && (in.Role != RoleEmployee || len(in.Teams) == 0 || !subset(in.Teams, teamIDs(u.Teams))) {
@@ -184,8 +183,7 @@ func updateUser(db *gorm.DB) gin.HandlerFunc {
 			Password *string `json:"password"`
 			Teams    *[]uint `json:"teams" binding:"omitempty,max=50"`
 		}
-		if err := c.ShouldBindJSON(&in); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		if !bindJSON(c, &in) {
 			return
 		}
 		t, ok := loadVisible(c, db, u)
@@ -337,8 +335,7 @@ func listTeams(db *gorm.DB) gin.HandlerFunc {
 func createTeam(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var t Team
-		if err := c.ShouldBindJSON(&t); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		if !bindJSON(c, &t) {
 			return
 		}
 		t.ID, t.CompanyID, t.Name = 0, *me(c).CompanyID, strings.TrimSpace(t.Name)
@@ -361,8 +358,7 @@ func renameTeam(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 		var t Team
-		if err := c.ShouldBindJSON(&t); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		if !bindJSON(c, &t) {
 			return
 		}
 		t.ID, t.CompanyID, t.Name = id, *me(c).CompanyID, strings.TrimSpace(t.Name)
@@ -457,8 +453,7 @@ func createCompany(db *gorm.DB) gin.HandlerFunc {
 				Password string `json:"password" binding:"required"`
 			} `json:"admin"`
 		}
-		if err := c.ShouldBindJSON(&in); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		if !bindJSON(c, &in) {
 			return
 		}
 		co := Company{Name: strings.TrimSpace(in.Name), Active: true}

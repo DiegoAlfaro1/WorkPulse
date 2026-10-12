@@ -6,8 +6,10 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
@@ -245,7 +247,26 @@ func TestImpersonate(t *testing.T) {
 	a.run([]apiCase{
 		{"as-dana", "GET", "/api/auth/me", "", 200, `{"impersonating":true,"user":{"id":4,"company":1,"name":"dana","email":"dana@test.io","role":"employee","teams":[{"id":1,"name":"Design"}],"active":true}}`},
 		{"as-dana", "GET", "/api/projects", "", 200, `[]`},
+		{"as-dana", "POST", "/api/projects", `{"name":"Website","client":"Acme"}`, 201, ``},
+		{"as-dana", "POST", "/api/entries", `{"project":1,"task":"Design","desc":"Fix","start":1000,"end":5000}`, 201, ``},
 	})
+
+	// Short-lived session, an audit row, and the entry is flagged with who really created it.
+	var s Session
+	a.db.Where("token_hash = ?", hashToken(out.Token)).First(&s)
+	if s.ExpiresAt > time.Now().Add(impersonationTTL).UnixMilli() {
+		t.Errorf("impersonation session expires at %d, want within %v", s.ExpiresAt, impersonationTTL)
+	}
+	var logs []ImpersonationLog
+	a.db.Find(&logs)
+	if len(logs) != 1 || logs[0].SuperAdminID != 1 || logs[0].UserID != 4 {
+		t.Errorf("impersonation log: %+v", logs)
+	}
+	var e Entry
+	a.db.First(&e)
+	if e.UserID != 4 || e.ImpersonatorID == nil || *e.ImpersonatorID != 1 {
+		t.Errorf("entry: member %d impersonator %v", e.UserID, e.ImpersonatorID)
+	}
 }
 
 func TestCompanies(t *testing.T) {
@@ -437,6 +458,7 @@ func TestCatalog(t *testing.T) {
 
 func TestEntries(t *testing.T) {
 	a := newTestAPI(t)
+	soon, later := strconv.FormatInt(time.Now().Add(time.Hour).UnixMilli(), 10), strconv.FormatInt(time.Now().Add(2*time.Hour).UnixMilli(), 10)
 	const ok = `{"member":99,"project":1,"task":"Design","desc":" Mockups ","tags":[{"name":"Deep-Work"}],"billable":true,"start":1000,"end":5000}`
 	a.run([]apiCase{
 		{"admin", "POST", "/api/projects", `{"name":"Website","client":"Acme"}`, 201, ``},
@@ -447,12 +469,14 @@ func TestEntries(t *testing.T) {
 		// member is ignored: entries always belong to the signed-in user (dana = 4).
 		{"dana", "POST", "/api/entries", ok, 201, `{"id":1,"member":4,"project":1,"task":"Design","desc":"Mockups","tags":[{"id":1,"name":"deep-work"}],"billable":true,"start":1000,"end":5000}`},
 		{"eli", "POST", "/api/entries", `{"project":1,"task":"Admin","desc":"Email","start":6000,"end":7000}`, 201, ``},
-		{"dana", "POST", "/api/entries", strings.Replace(ok, `"end":5000`, `"end":1000`, 1), 400, ``},
+		{"dana", "POST", "/api/entries", strings.Replace(ok, `"end":5000`, `"end":1000`, 1), 400, `{"error":"end must be after start"}`},
+		{"dana", "POST", "/api/entries", strings.Replace(ok, `"end":5000`, `"end":86401001`, 1), 400, `{"error":"an entry can't be longer than 24 hours"}`},
+		{"dana", "POST", "/api/entries", strings.Replace(ok, `"start":1000,"end":5000`, `"start":`+soon+`,"end":`+later, 1), 400, `{"error":"an entry can't end in the future"}`},
 		{"dana", "POST", "/api/entries", strings.Replace(ok, `"project":1`, `"project":9`, 1), 400, `{"error":"unknown project"}`},
 		{"dana", "POST", "/api/entries", strings.Replace(ok, `"project":1`, `"project":2`, 1), 400, `{"error":"unknown project"}`}, // Globex's
 		{"dana", "POST", "/api/entries", strings.Replace(ok, `Deep-Work`, `nope`, 1), 400, `{"error":"unknown tag: nope"}`},
 		{"dana", "POST", "/api/entries", strings.Replace(ok, `Deep-Work`, `globex-only`, 1), 400, `{"error":"unknown tag: globex-only"}`},
-		{"dana", "POST", "/api/entries", strings.Replace(ok, `"task":"Design",`, ``, 1), 400, ``},
+		{"dana", "POST", "/api/entries", strings.Replace(ok, `"task":"Design",`, ``, 1), 400, `{"error":"task is required"}`},
 		{"dana", "POST", "/api/entries", strings.Replace(ok, `" Mockups "`, `"  "`, 1), 400, `{"error":"description is required"}`},
 		{"dana", "POST", "/api/entries", strings.Replace(ok, `"project":1,`, ``, 1), 400, ``},
 		{"super", "POST", "/api/entries", ok, 403, ``},

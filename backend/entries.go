@@ -3,6 +3,7 @@ package main
 import (
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -27,17 +28,29 @@ func listEntries(db *gorm.DB) gin.HandlerFunc {
 	}
 }
 
+const (
+	maxEntry  = 24 * time.Hour
+	clockSkew = 5 * time.Minute // how far in the future an entry may end (client clocks drift)
+)
+
 // createEntry records time for the signed-in user. It requires a description and one of the company's projects,
 // and takes tags by name ({"name": ...}), linking the company's existing tags; it never creates tags.
 func createEntry(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var e Entry
-		if err := c.ShouldBindJSON(&e); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		if !bindJSON(c, &e) {
+			return
+		}
+		if time.Duration(e.End-e.Start)*time.Millisecond > maxEntry {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "an entry can't be longer than 24 hours"})
+			return
+		}
+		if e.End > time.Now().Add(clockSkew).UnixMilli() {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "an entry can't end in the future"})
 			return
 		}
 		u := me(c)
-		e.ID, e.UserID = 0, u.ID
+		e.ID, e.UserID, e.ImpersonatorID = 0, u.ID, session(c).ImpersonatorID
 		e.Desc = strings.TrimSpace(e.Desc)
 		if e.Desc == "" {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "description is required"})

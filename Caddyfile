@@ -1,0 +1,9 @@
+# TLS in front of nginx. Set DOMAIN in .env to a public hostname and Caddy gets a Let's Encrypt cert
+# (ports 80/443 must reach this host); the default `localhost` uses Caddy's own CA (browser warning, fine for dev).
+# http:// redirects to https:// automatically.
+{$DOMAIN:localhost} {
+	# HSTS only on a real domain: on localhost it would force https on every other local dev server too.
+	@public not host localhost
+	header @public Strict-Transport-Security "max-age=31536000"
+	reverse_proxy frontend:80
+}

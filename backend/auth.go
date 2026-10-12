@@ -17,6 +17,9 @@ import (
 // ponytail: fixed lifetime, no refresh; add sliding expiry if weekly re-logins annoy people.
 const sessionTTL = 7 * 24 * time.Hour
 
+// impersonationTTL: "sign in as" sessions are short-lived, so a forgotten one doesn't stay open for a week.
+const impersonationTTL = time.Hour
+
 // dummyHash makes a login for an unknown email cost the same bcrypt time as a wrong password (no user enumeration).
 var dummyHash, _ = bcrypt.GenerateFromPassword([]byte("not-a-real-password"), bcrypt.DefaultCost)
 
@@ -34,7 +37,11 @@ func hashPassword(pw string) ([]byte, error) {
 // newSession stores a session and returns its bearer token (128 random bits).
 func newSession(db *gorm.DB, userID uint, impersonator *uint) (string, int64, error) {
 	token := rand.Text()
-	exp := time.Now().Add(sessionTTL).UnixMilli()
+	ttl := sessionTTL
+	if impersonator != nil {
+		ttl = impersonationTTL
+	}
+	exp := time.Now().Add(ttl).UnixMilli()
 	err := db.Omit("User").Create(&Session{TokenHash: hashToken(token), UserID: userID, ImpersonatorID: impersonator, ExpiresAt: exp}).Error
 	return token, exp, err
 }
@@ -103,8 +110,7 @@ func login(db *gorm.DB) gin.HandlerFunc {
 			Email    string `json:"email" binding:"required,max=254"`
 			Password string `json:"password" binding:"required,max=200"`
 		}
-		if err := c.ShouldBindJSON(&in); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		if !bindJSON(c, &in) {
 			return
 		}
 		var u User
@@ -152,8 +158,7 @@ func changePassword(db *gorm.DB) gin.HandlerFunc {
 			Current string `json:"current" binding:"required,max=200"`
 			New     string `json:"new" binding:"required"`
 		}
-		if err := c.ShouldBindJSON(&in); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		if !bindJSON(c, &in) {
 			return
 		}
 		s := session(c)
@@ -187,8 +192,7 @@ func impersonate(db *gorm.DB) gin.HandlerFunc {
 		var in struct {
 			User uint `json:"user" binding:"required"`
 		}
-		if err := c.ShouldBindJSON(&in); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		if !bindJSON(c, &in) {
 			return
 		}
 		var u User
@@ -205,7 +209,12 @@ func impersonate(db *gorm.DB) gin.HandlerFunc {
 			c.JSON(http.StatusForbidden, gin.H{"error": "this account is deactivated"})
 			return
 		}
-		issueSession(c, db, &u, &me(c).ID)
+		superID := me(c).ID
+		if err := db.WithContext(c).Create(&ImpersonationLog{SuperAdminID: superID, UserID: u.ID, At: time.Now().UnixMilli()}).Error; err != nil {
+			dbError(c, err)
+			return
+		}
+		issueSession(c, db, &u, &superID)
 	}
 }
 

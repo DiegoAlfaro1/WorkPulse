@@ -1,11 +1,47 @@
 package main
 
 import (
+	"errors"
 	"net/http"
+	"reflect"
+	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/binding"
+	"github.com/go-playground/validator/v10"
 	"gorm.io/gorm"
 )
+
+// Validation errors name the JSON field ("desc"), not the Go one ("Desc").
+func init() {
+	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
+		v.RegisterTagNameFunc(func(f reflect.StructField) string { return strings.Split(f.Tag.Get("json"), ",")[0] })
+	}
+}
+
+// bindJSON parses the body into v, or answers 400 with a short message (never the raw Go error) and returns false.
+func bindJSON(c *gin.Context, v any) bool {
+	err := c.ShouldBindJSON(v)
+	if err == nil {
+		return true
+	}
+	msg := "invalid request body"
+	var ve validator.ValidationErrors
+	if errors.As(err, &ve) {
+		switch fe := ve[0]; fe.Tag() {
+		case "required":
+			msg = fe.Field() + " is required"
+		case "max":
+			msg = fe.Field() + " is too long"
+		case "gtfield":
+			msg = fe.Field() + " must be after " + strings.ToLower(fe.Param())
+		default:
+			msg = fe.Field() + " is invalid"
+		}
+	}
+	c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+	return false
+}
 
 func newRouter(db *gorm.DB) *gin.Engine {
 	r := gin.Default()

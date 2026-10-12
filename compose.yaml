@@ -1,10 +1,25 @@
 services:
+  # TLS termination (see Caddyfile). The only service published to the host.
+  proxy:
+    image: caddy:2-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      DOMAIN: ${DOMAIN:-localhost}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy:/data # certificates
+    depends_on:
+      - frontend
+    restart: unless-stopped
   frontend:
     build: ./frontend
-    ports:
-      - "8080:80"
+    # Not published: reached only through Caddy over HTTPS.
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     restart: unless-stopped
     # `docker compose up --watch`: rebuilds and replaces the container on changes (.dockerignore'd paths skipped).
     develop:
@@ -13,18 +28,46 @@ services:
           path: ./frontend
   backend:
     build: ./backend
-    # Creates the super admin on first start (ignored once one exists). Put them in a .env file next to this one.
+    # Creates the super admin on first start (ignored once one exists). Put them in a .env file next to this one,
+    # then remove SUPERADMIN_PASSWORD and change the password in the app: env values show in `docker inspect`.
     environment:
       SUPERADMIN_EMAIL: ${SUPERADMIN_EMAIL:-}
       SUPERADMIN_PASSWORD: ${SUPERADMIN_PASSWORD:-}
     # Not published: reached only through the frontend's nginx at /api.
     volumes:
       - data:/data
+    healthcheck:
+      test: ["CMD", "/server", "healthcheck"] # distroless has no curl; the binary checks /api/health itself
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
     restart: unless-stopped
     develop:
       watch:
         - action: rebuild
           path: ./backend
+  # Daily online copy of the database to ./backups on the host (survives losing the `data` volume); keeps 14 days.
+  # Restore: stop the backend, copy a backup over /data/workpulse.db in the volume, start it again.
+  backup:
+    image: alpine:3.22
+    command:
+      - sh
+      - -c
+      - |
+        apk add --no-cache sqlite >/dev/null
+        while :; do
+          sqlite3 /data/workpulse.db ".backup /backups/workpulse-$$(date +%F).db" && echo "backup ok"
+          find /backups -name 'workpulse-*.db' -mtime +14 -delete
+          sleep 86400
+        done
+    volumes:
+      - data:/data
+      - ./backups:/backups
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
 
 volumes:
   data:
+  caddy:

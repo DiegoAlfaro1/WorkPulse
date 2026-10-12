@@ -23,8 +23,7 @@ func listProjects(db *gorm.DB) gin.HandlerFunc {
 func createProject(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var p Project
-		if err := c.ShouldBindJSON(&p); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		if !bindJSON(c, &p) {
 			return
 		}
 		p.ID, p.CompanyID = 0, *me(c).CompanyID // never taken from the client
@@ -55,8 +54,7 @@ func listTags(db *gorm.DB) gin.HandlerFunc {
 func createTag(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var t Tag
-		if err := c.ShouldBindJSON(&t); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		if !bindJSON(c, &t) {
 			return
 		}
 		t.ID, t.CompanyID = 0, *me(c).CompanyID

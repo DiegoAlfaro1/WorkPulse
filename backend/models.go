@@ -80,4 +80,14 @@ type Entry struct {
 	Billable  bool    `json:"billable" gorm:"not null"`
 	Start     int64   `json:"start" gorm:"column:start_ms;not null" binding:"required"`
 	End       int64   `json:"end" gorm:"column:end_ms;not null;check:end_ms > start_ms" binding:"required,gtfield=Start"`
+	// ImpersonatorID: the super admin who created it while signed in as the user; never from the body.
+	ImpersonatorID *uint `json:"-"`
+}
+
+// ImpersonationLog records every "sign in as" (audit trail; never shown in the app).
+type ImpersonationLog struct {
+	ID           uint
+	SuperAdminID uint  `gorm:"not null"`
+	UserID       uint  `gorm:"not null;index"`
+	At           int64 `gorm:"not null"` // Unix ms
 }

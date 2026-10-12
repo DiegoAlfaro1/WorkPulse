@@ -20,9 +20,13 @@ npm run build
 Docker (multi-stage: tests + build on Node, served by nginx), from the repo root:
 
 ```
-docker compose up --build   # http://localhost:8080 (nginx serves the app and proxies /api to the backend)
+docker compose up --build   # https://localhost (Caddy: TLS → nginx: app + /api proxy → backend)
 docker compose up --watch   # same, plus rebuilds a service when its folder changes (tests run on each rebuild)
 ```
+
+Only Caddy is published (ports 80/443; http redirects to https). Set `DOMAIN` in `.env` to a public hostname for a
+Let's Encrypt cert (and HSTS); the default `localhost` uses Caddy's own CA, so the browser warns. nginx adds a CSP and
+other security headers. The `backup` service copies the database to `./backups/` once a day (keeps 14 days).
 
 ### Structure (hexagonal + atomic design)
 
@@ -51,6 +55,7 @@ go test ./...
 Config (env vars): `PORT` (default `8080`), `DB_PATH` (default `workpulse.db`), `GIN_MODE` (`release` in Docker),
 `SUPERADMIN_EMAIL` + `SUPERADMIN_PASSWORD` (create the super admin on first start; required until one exists, ignored after).
 With Docker, put the two `SUPERADMIN_*` values in a `.env` file at the repo root (gitignored); compose passes them through.
+After the first start, remove `SUPERADMIN_PASSWORD` from `.env` and change it in the app (env values show in `docker inspect`).
 
 SQLite through GORM with `github.com/glebarez/sqlite` (pure Go, no CGO), opened in WAL mode with foreign keys on.
 The schema comes from the models in `models.go` via `AutoMigrate` at startup (adds tables/columns/indexes only).
@@ -71,7 +76,8 @@ time entries, which still count in reports. They can be reactivated.
 
 Auth: `POST /api/auth/login` returns an opaque bearer token (128 random bits, stored only as a SHA-256 hash, valid 7 days).
 Send it as `Authorization: Bearer <token>` on every other route; without a valid one they answer 401.
-Passwords are bcrypt-hashed, 8–72 bytes. nginx throttles logins to 10/minute per IP (burst 5).
+Passwords are bcrypt-hashed, 8–72 bytes. nginx throttles logins and password changes to 10/minute per IP (burst 5, shared).
+Bad request bodies get a 400 naming the JSON field (`{"error":"task is required"}`).
 
 | Route | Who | Body | Notes |
 |---|---|---|---|
@@ -79,7 +85,7 @@ Passwords are bcrypt-hashed, 8–72 bytes. nginx throttles logins to 10/minute p
 | `GET /api/auth/me` | signed in | | `{"user","impersonating"}` |
 | `POST /api/auth/logout` | signed in | | 204; revokes this token only |
 | `POST /api/auth/password` | signed in | `{"current","new"}` | 204; 403 on a wrong current password; signs out every other session |
-| `POST /api/auth/impersonate` | super admin | `{"user"}` | a token for that user, flagged `impersonating` |
+| `POST /api/auth/impersonate` | super admin | `{"user"}` | a token for that user, flagged `impersonating`, valid 1 hour; logged in `impersonation_logs`, and entries created with it record the super admin (`impersonator_id`, not in the API) |
 | `GET /api/companies` · `POST /api/companies` | super admin | `{"name","admin":{"name","email","password"}}` | creates the company and its first admin together |
 | `POST /api/companies/:id/deactivate` · `/activate` | super admin | | deactivating signs out everyone in it |
 | `GET /api/users` | signed in | | the users the caller may see (deactivated ones included, `"active":false`), with `teams`; super admin: everyone |
@@ -98,5 +104,5 @@ Passwords are bcrypt-hashed, 8–72 bytes. nginx throttles logins to 10/minute p
 | `GET /api/tags` | | ordered by name |
 | `POST /api/tags` | `{"name"}` | leading `#` stripped, no spaces; 409 if it exists (case-insensitive) |
 | `GET /api/entries` | | entries of every user the caller may see, newest first; `member` is the user id; `tags` as `[{"id","name"}]` |
-| `POST /api/entries` | `{"project","task","desc","tags","billable","start","end"}` | always recorded for the caller; `desc` required; `tags` as `[{"name"}]` (existing tags only); times in Unix ms, `end > start`; 400 on unknown project/tag |
+| `POST /api/entries` | `{"project","task","desc","tags","billable","start","end"}` | always recorded for the caller; `desc` required; `tags` as `[{"name"}]` (existing tags only); times in Unix ms, `end > start`, at most 24 h long, ending no later than now + 5 min; 400 on unknown project/tag |
 | `DELETE /api/entries/:id` | | own entries (admins: anyone's in the company); 204; 404 otherwise |

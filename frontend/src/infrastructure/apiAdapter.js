@@ -15,7 +15,7 @@ async function req(path, body, method = body ? 'POST' : 'GET') {
   const headers = { ...(token && { Authorization: 'Bearer ' + token }), ...(body && { 'Content-Type': 'application/json' }) };
   const r = await fetch('/api' + path, { method, headers, ...(body && { body: JSON.stringify(body) }) });
   const data = await r.json().catch(() => ({})); // 204 has no body
-  if (r.status === 401 && token) { setToken(null); onUnauthorized(); } // expired or revoked session
+  if (r.status === 401 && token) { setToken(null); write(SUPER_KEY, null); onUnauthorized(); } // expired or revoked session (impersonation: 1h)
   if (!r.ok) throw Object.assign(new Error(data.error || r.statusText), { status: r.status });
   return data;
 }

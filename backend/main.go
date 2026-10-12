@@ -19,6 +19,14 @@ func env(key, fallback string) string {
 }
 
 func main() {
+	// `server healthcheck`: compose's healthcheck (the distroless image has no curl).
+	if len(os.Args) > 1 && os.Args[1] == "healthcheck" {
+		res, err := (&http.Client{Timeout: 3 * time.Second}).Get("http://localhost:" + env("PORT", "8080") + "/api/health")
+		if err != nil || res.StatusCode != http.StatusOK {
+			os.Exit(1)
+		}
+		return
+	}
 	db, err := openDB(env("DB_PATH", "workpulse.db"))
 	if err != nil {
 		log.Fatal(err)
